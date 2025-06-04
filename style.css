@@ -70,6 +70,26 @@ section {
     background-color: #218838;
 }
 
+.clear-button {
+    background-color: #f0ad4e; /* Warna oranye/peringatan */
+    color: white;
+    padding: 8px 15px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.95em;
+    transition: background-color 0.3s ease;
+    margin-top: 15px; /* Memberi sedikit jarak dari daftar file */
+    display: block; /* Menjadikan tombol satu baris penuh */
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.clear-button:hover {
+    background-color: #ec971f;
+}
+
+
 #fileList, #githubUrlList {
     margin-top: 15px;
     background-color: #e9ecef;

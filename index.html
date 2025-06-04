@@ -16,18 +16,18 @@
                 <input type="file" id="studentCodeInput" multiple accept=".js,.py,.java,.c,.cpp,.h" style="display: none;">
                 <label for="studentCodeInput" class="upload-button">Pilih File Kode Mahasiswa</label>
                 <div id="fileList"></div>
-            </div>
+                <button id="clearStudentFilesBtn" class="clear-button hidden">Hapus Semua File Mahasiswa</button> </div>
             <p class="info-text">Pilih satu atau beberapa file kode yang ingin diperiksa (misalnya: .js, .py, .java).</p>
         </section>
 
         <section id="github-url-section">
-            <h2>2. Tambahkan URL GitHub (Sumber Pembanding)</h2>
+            <h2>2. Tambahkan URL Repositori GitHub (Sumber Pembanding)</h2>
             <div class="github-url-input-group">
-                <input type="text" id="githubUrlInput" placeholder="Masukkan URL GitHub Blob (contoh: https://github.com/.../file.js)">
+                <input type="text" id="githubUrlInput" placeholder="Masukkan URL Repositori GitHub (contoh: https://github.com/user/repo)">
                 <button id="addGithubUrl">Tambah URL</button>
             </div>
             <div id="githubUrlList"></div>
-            <p class="info-text">Tambahkan URL file kode GitHub yang ingin dijadikan pembanding.</p>
+            <button id="clearGithubFilesBtn" class="clear-button hidden">Hapus Semua File GitHub</button> <p class="info-text">Tambahkan URL repositori GitHub yang ingin dijadikan pembanding.</p>
         </section>
 
         <section id="action-section">

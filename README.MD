@@ -37,7 +37,6 @@ CODE TURNITIN/
 ├── index.html                 # Main frontend HTML file
 └── style.css                  # Frontend CSS for styling
 
-
 ## Setup and Installation
 
 Follow these steps to get the project up and running on your local machine:
@@ -112,17 +111,6 @@ Follow these steps to get the project up and running on your local machine:
    * After the analysis is complete, the "Hasil Deteksi Kemiripan" (Similarity Detection Results) section will appear.
    * Results will be displayed in two tables: "Mahasiswa vs GitHub" and "Mahasiswa vs Mahasiswa", showing the similarity percentage.
    * Rows with a similarity score of 70% or higher will be highlighted.
-
-## Future Enhancements (Potential Skripsi Topics)
-
-* **Advanced Pre-processing:** Implement more sophisticated code normalization (e.g., abstracting variable/function names, removing boilerplate code).
-* **Abstract Syntax Tree (AST) Comparison:** Move beyond token-based comparison to structure-based comparison for higher accuracy.
-* **Support for More Languages:** Extend pre-processing and parsing capabilities for other programming languages.
-* **Database Integration:** Store historical submission data and plagiarism reports in a database.
-* **User Authentication and Management:** Implement user roles (e.g., student, instructor).
-* **Reporting Features:** Generate detailed plagiarism reports with highlighted similar code sections.
-* **Performance Optimization:** Optimize for larger codebases and a higher number of submissions.
-* **Containerization:** Deploy using Docker for easier setup and scalability.
 
 ## Contributing
 
