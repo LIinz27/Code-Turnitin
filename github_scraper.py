@@ -1,9 +1,9 @@
-# github_scraper.py (DIUBAH)
-
 import requests
-from bs4 import BeautifulSoup
 import os
 import re
+from urllib.parse import urlparse, urljoin
+
+# Fungsi yang sudah ada (parse_github_blob_url_to_raw dan download_raw_code) tetap sama
 
 def parse_github_blob_url_to_raw(blob_url):
     """
@@ -21,50 +21,118 @@ def parse_github_blob_url_to_raw(blob_url):
     return None
 
 def download_raw_code(url, save_path):
-    print(f"Mengunduh dari: {url}")
+    """
+    Mengunduh konten raw dari URL ke path penyimpanan.
+    """
+    # print(f"Mengunduh dari: {url}") # Uncomment for debugging
     try:
-        r = requests.get(url, stream=True) # Gunakan stream untuk file besar
+        r = requests.get(url, stream=True, timeout=10) # Tambahkan timeout
         r.raise_for_status() # Akan memunculkan HTTPError untuk status kode 4xx/5xx
 
-        # Pastikan kita mendapatkan teks, bukan HTML
-        # Jika URL adalah blob, kemungkinan besar kontennya HTML
-        if "github.com/blob" in url and "raw.githubusercontent.com" not in url:
-            print(f"Peringatan: URL {url} tampaknya adalah URL 'blob' GitHub. Pastikan Anda mengunduh konten raw.")
-            # Anda bisa menambahkan logika di sini untuk mem-parsing HTML jika ingin mencoba mengekstrak kode
-            # Atau, lebih baik lagi, pastikan URL yang masuk adalah URL raw yang benar.
-            # return False # Atau tangani lebih lanjut
-
-        with open(save_path, "wb") as f: # Gunakan 'wb' untuk konten biner
+        with open(save_path, "wb") as f:
             for chunk in r.iter_content(chunk_size=8192):
                 f.write(chunk)
-        print(f"Berhasil mengunduh ke: {save_path}")
+        # print(f"Berhasil mengunduh ke: {save_path}") # Uncomment for debugging
         return True
     except requests.exceptions.RequestException as e:
         print(f"Gagal mengunduh {url}: {e}")
         return False
 
-# Contoh URL raw code GitHub (Anda perlu menyesuaikan ini)
-# Ini adalah daftar URL blob, yang harus diubah ke raw sebelum diunduh
-urls_blob = [
-    "https://github.com/Ahmadfaisal04/AHMAD-FAISAL---105841100121/blob/master/App.js",
-    "https://github.com/Linzty/Muhammad_Dasril_Asdar-105841100321-lab1/blob/main/App.js",
-    "https://github.com/Linzty/Muhammad_Dasril_Asdar-105841100321-lab1/blob/main/font.js"
-]
+# --- FUNGSI BARU UNTUK MENGUNDUH SELURUH REPO ---
+def get_github_repo_info(repo_url):
+    """
+    Mengekstrak username, repository name dari URL repo GitHub.
+    Contoh: https://github.com/user/repo -> user, repo
+    """
+    parsed_url = urlparse(repo_url)
+    path_segments = [s for s in parsed_url.path.split('/') if s]
+    if len(path_segments) >= 2:
+        username = path_segments[0]
+        repo_name = path_segments[1]
+        return username, repo_name
+    return None, None
 
+def scrape_repo_files(repo_url, save_dir, allowed_extensions=('.js', '.py', '.java', '.c', '.cpp', '.h')):
+    """
+    Mengunduh semua file kode dari repositori GitHub ke direktori yang ditentukan.
+    Menggunakan GitHub API untuk mendapatkan daftar file.
+    """
+    username, repo_name = get_github_repo_info(repo_url)
+    if not username or not repo_name:
+        print(f"URL repositori tidak valid: {repo_url}")
+        return []
+
+    api_url = f"https://api.github.com/repos/{username}/{repo_name}/git/trees/main?recursive=1"
+    # Atau 'master' jika 'main' tidak ada. Bisa juga deteksi default branch.
+    # Untuk skripsi, gunakan default branch atau parameterkan.
+
+    headers = {}
+    # Anda bisa menambahkan Personal Access Token (PAT) di sini untuk rate limit yang lebih tinggi:
+    # GITHUB_TOKEN = os.getenv('GITHUB_TOKEN') # Pastikan Anda menyetel environment variable ini
+    # if GITHUB_TOKEN:
+    #     headers['Authorization'] = f'token {GITHUB_TOKEN}'
+
+    print(f"Mengambil daftar file dari {repo_url}...")
+    try:
+        response = requests.get(api_url, headers=headers, timeout=15)
+        response.raise_for_status()
+        tree_data = response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"Gagal mengambil daftar file dari API GitHub {api_url}: {e}")
+        return []
+
+    downloaded_files_names = []
+    if 'tree' in tree_data:
+        for item in tree_data['tree']:
+            if item['type'] == 'blob': # 'blob' berarti file
+                file_path = item['path']
+                file_ext = os.path.splitext(file_path)[1].lower()
+
+                if file_ext in allowed_extensions:
+                    raw_file_url = f"https://raw.githubusercontent.com/{username}/{repo_name}/main/{file_path}"
+                    # Pastikan 'main' cocok dengan branch yang Anda ambil dari API.
+                    # Jika 'main' tidak ditemukan, coba 'master' atau ambil dari response API.
+
+                    # Buat nama file unik untuk penyimpanan lokal
+                    local_filename = f"{username}_{repo_name}_{file_path.replace('/', '_')}"
+                    save_path = os.path.join(save_dir, local_filename)
+
+                    if not os.path.exists(save_path):
+                        print(f"  Mengunduh: {file_path}")
+                        if download_raw_code(raw_file_url, save_path):
+                            downloaded_files_names.append(local_filename)
+                    else:
+                        # print(f"  Sudah ada: {file_path}") # Uncomment if you want to see skipped files
+                        downloaded_files_names.append(local_filename) # Masih anggap ini sebagai file yang "diambil"
+
+    print(f"Selesai mengunduh file dari {repo_url}. Total: {len(downloaded_files_names)} file kode.")
+    return downloaded_files_names
+
+# Jika Anda ingin menguji scraper ini secara mandiri:
 if __name__ == "__main__":
-    os.makedirs("data/github", exist_ok=True)
+    # Contoh penggunaan untuk scraping repositori penuh
+    repo_urls_to_scrape = [
+        "https://github.com/Linzty/Muhammad_Dasril_Asdar-105841100321-lab1", # Ini adalah URL repo, bukan file
+        # "https://github.com/Ahmadfaisal04/AHMAD-FAISAL---105841100121" # Contoh repo lain
+    ]
     
-    for i, blob_url in enumerate(urls_blob):
-        raw_url = parse_github_blob_url_to_raw(blob_url)
-        if raw_url:
-            # Ekstrak nama file dari URL blob untuk nama penyimpanan yang lebih baik
-            file_name = blob_url.split('/')[-1]
-            repo_name = blob_url.split('/')[-3]
-            user_name = blob_url.split('/')[-4]
-            
-            # Buat nama file yang lebih unik dan informatif
-            save_path = f"data/github/{user_name}_{repo_name}_{file_name}"
-            
-            download_raw_code(raw_url, save_path)
-        else:
-            print(f"Tidak dapat mem-parsing URL blob: {blob_url}. Melewati.")
+    output_dir = "data/github"
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Hapus file GitHub lama sebelum mengunduh yang baru (opsional)
+    for filename in os.listdir(output_dir):
+        file_path = os.path.join(output_dir, filename)
+        try:
+            if os.path.isfile(file_path):
+                os.unlink(file_path)
+        except Exception as e:
+            print(f"Error deleting old github file {file_path}: {e}")
+
+    all_downloaded_github_files = []
+    for repo_url in repo_urls_to_scrape:
+        downloaded = scrape_repo_files(repo_url, output_dir)
+        all_downloaded_github_files.extend(downloaded)
+    
+    print("\nSemua file GitHub yang berhasil diunduh:")
+    for f in all_downloaded_github_files:
+        print(f"- {f}")
