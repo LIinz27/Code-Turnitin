@@ -1,7 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
     // === DOM Elements ===
-    const studentCodeInput = document.getElementById('studentCodeInput');
-    const fileList = document.getElementById('fileList');
+    const studentRepoUrlInput = document.getElementById('studentRepoUrlInput');
+    const addStudentRepoUrlButton = document.getElementById('addStudentRepoUrl');
+    const studentRepoUrlList = document.getElementById('studentRepoUrlList');
+
     const githubUrlInput = document.getElementById('githubUrlInput');
     const addGithubUrlButton = document.getElementById('addGithubUrl');
     const githubUrlList = document.getElementById('githubUrlList');
@@ -9,49 +11,48 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadingIndicator = document.getElementById('loadingIndicator');
     const resultsSection = document.getElementById('results-section');
     const mhVsGhResultsTableBody = document.querySelector('#mhVsGhResults tbody');
-    const mhVsMhResultsTableBody = document.querySelector('#mhVsMhResults tbody');
+    // REMOVED: const mhVsMhResultsTableBody = document.querySelector('#mhVsMhResults tbody');
     const noResultsDiv = document.getElementById('noResults');
 
-    // NEW DOM ELEMENTS
     const clearStudentFilesBtn = document.getElementById('clearStudentFilesBtn');
     const clearGithubFilesBtn = document.getElementById('clearGithubFilesBtn');
 
     // === Data Storage ===
-    let studentFiles = []; // Stores File objects
-    let githubUrls = [];   // Stores string URLs (now repo URLs)
+    let studentRepoUrls = [];
+    let githubUrls = [];
 
     // === Functions ===
 
-    // Function to update student file list in UI
-    function updateFileList() {
-        fileList.innerHTML = ''; // Clear current list
-        if (studentFiles.length === 0) {
-            fileList.innerHTML = '<p style="color: #6c757d;">Belum ada file yang dipilih.</p>';
-            clearStudentFilesBtn.classList.add('hidden'); // Hide button if no files
+    // updateStudentRepoList - NO CHANGES
+    function updateStudentRepoList() {
+        studentRepoUrlList.innerHTML = '';
+        if (studentRepoUrls.length === 0) {
+            studentRepoUrlList.innerHTML = '<p style="color: #6c757d;">Belum ada URL repositori mahasiswa yang ditambahkan.</p>';
+            clearStudentFilesBtn.classList.add('hidden');
         } else {
-            studentFiles.forEach((file, index) => {
+            studentRepoUrls.forEach((url, index) => {
                 const p = document.createElement('p');
-                p.textContent = file.name;
+                p.textContent = url;
                 const removeBtn = document.createElement('button');
                 removeBtn.textContent = 'X';
                 removeBtn.classList.add('remove-file-btn');
                 removeBtn.addEventListener('click', () => {
-                    studentFiles.splice(index, 1); // Remove from array
-                    updateFileList(); // Update UI
+                    studentRepoUrls.splice(index, 1);
+                    updateStudentRepoList();
                 });
                 p.appendChild(removeBtn);
-                fileList.appendChild(p);
+                studentRepoUrlList.appendChild(p);
             });
-            clearStudentFilesBtn.classList.remove('hidden'); // Show button if files exist
+            clearStudentFilesBtn.classList.remove('hidden');
         }
     }
 
-    // Function to update GitHub URL list in UI
+    // updateGithubUrlList - NO CHANGES
     function updateGithubUrlList() {
-        githubUrlList.innerHTML = ''; // Clear current list
+        githubUrlList.innerHTML = '';
         if (githubUrls.length === 0) {
-            githubUrlList.innerHTML = '<p style="color: #6c757d;">Belum ada URL GitHub yang ditambahkan.</p>';
-            clearGithubFilesBtn.classList.add('hidden'); // Hide button if no URLs
+            githubUrlList.innerHTML = '<p style="color: #6c757d;">Belum ada URL repositori GitHub yang ditambahkan.</p>';
+            clearGithubFilesBtn.classList.add('hidden');
         } else {
             githubUrls.forEach((url, index) => {
                 const p = document.createElement('p');
@@ -60,30 +61,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 removeBtn.textContent = 'X';
                 removeBtn.classList.add('remove-file-btn');
                 removeBtn.addEventListener('click', () => {
-                    githubUrls.splice(index, 1); // Remove from array
-                    updateGithubUrlList(); // Update UI
+                    githubUrls.splice(index, 1);
+                    updateGithubUrlList();
                 });
                 p.appendChild(removeBtn);
                 githubUrlList.appendChild(p);
             });
-            clearGithubFilesBtn.classList.remove('hidden'); // Show button if URLs exist
+            clearGithubFilesBtn.classList.remove('hidden');
         }
     }
 
-    // Function to display results in tables
-    function displayResults(mhVsGhData, mhVsMhData) {
+    // Function to display results in tables (UPDATED)
+    function displayResults(mhVsGhData) { // REMOVED mhVsMhData parameter
         mhVsGhResultsTableBody.innerHTML = ''; // Clear previous results
-        mhVsMhResultsTableBody.innerHTML = ''; // Clear previous results
+        // REMOVED: mhVsMhResultsTableBody.innerHTML = ''; // Clear previous results
 
         let hasSignificantResults = false;
 
         // Mahasiswa vs GitHub
-        mhVsGhData.sort((a, b) => b.score - a.score); // Sort by score descending
+        mhVsGhData.sort((a, b) => b.score - a.score);
         mhVsGhData.forEach(result => {
-            if (result.score > 0) { // Only show results with score > 0%
+            if (result.score > 0) {
                 hasSignificantResults = true;
                 const row = mhVsGhResultsTableBody.insertRow();
-                if (result.score >= 70) { // Highlight high similarity
+                if (result.score >= 70) {
                     row.classList.add('high-similarity');
                 }
                 row.insertCell().textContent = result.source_file;
@@ -92,40 +93,56 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Mahasiswa vs Mahasiswa
-        mhVsMhData.sort((a, b) => b.score - a.score); // Sort by score descending
-        mhVsMhData.forEach(result => {
-            if (result.score > 0) { // Only show results with score > 0%
-                hasSignificantResults = true;
-                const row = mhVsMhResultsTableBody.insertRow();
-                if (result.score >= 70) { // Highlight high similarity
-                    row.classList.add('high-similarity');
-                }
-                row.insertCell().textContent = result.file1;
-                row.insertCell().textContent = result.file2;
-                row.insertCell().textContent = `${result.score}%`;
-            }
-        });
+        // REMOVED: Mahasiswa vs Mahasiswa section
+        // mhVsMhData.sort((a, b) => b.score - a.score);
+        // mhVsMhData.forEach(result => {
+        //     if (result.score > 0) {
+        //         hasSignificantResults = true;
+        //         const row = mhVsMhResultsTableBody.insertRow();
+        //         if (result.score >= 70) {
+        //             row.classList.add('high-similarity');
+        //         }
+        //         row.insertCell().textContent = result.file1;
+        //         row.insertCell().textContent = result.file2;
+        //         row.insertCell().textContent = `${result.score}%`;
+        //     }
+        // });
 
         if (!hasSignificantResults) {
             noResultsDiv.classList.remove('hidden');
         } else {
             noResultsDiv.classList.add('hidden');
         }
-        resultsSection.classList.remove('hidden'); // Show results section
+        resultsSection.classList.remove('hidden');
     }
 
     // === Event Listeners ===
 
-    // Handle student file input change
-    studentCodeInput.addEventListener('change', (event) => {
-        studentFiles = Array.from(event.target.files);
-        updateFileList();
+    // addStudentRepoUrlButton - NO CHANGES
+    addStudentRepoUrlButton.addEventListener('click', () => {
+        const url = studentRepoUrlInput.value.trim();
+        if (!url.startsWith('https://github.com/')) {
+            alert('Mohon masukkan URL repositori GitHub yang valid (diawali dengan https://github.com/).');
+            return;
+        }
+        if (url && !studentRepoUrls.includes(url)) {
+            studentRepoUrls.push(url);
+            studentRepoUrlInput.value = '';
+            updateStudentRepoList();
+        } else if (url && studentRepoUrls.includes(url)) {
+            alert('URL repositori ini sudah ada dalam daftar.');
+        } else {
+            alert('Silakan masukkan URL repositori mahasiswa yang valid.');
+        }
     });
 
-    // Handle add GitHub URL button click
+    // addGithubUrlButton - NO CHANGES
     addGithubUrlButton.addEventListener('click', () => {
         const url = githubUrlInput.value.trim();
+        if (!url.startsWith('https://github.com/')) {
+            alert('Mohon masukkan URL repositori GitHub yang valid (diawali dengan https://github.com/).');
+            return;
+        }
         if (url && !githubUrls.includes(url)) {
             githubUrls.push(url);
             githubUrlInput.value = '';
@@ -137,24 +154,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Handle Run Analysis Button click
+    // Handle Run Analysis Button click (UPDATED displayResults CALL)
     runAnalysisButton.addEventListener('click', async () => {
-        if (studentFiles.length === 0) {
-            alert('Mohon unggah setidaknya satu file kode mahasiswa.');
+        if (studentRepoUrls.length === 0) {
+            alert('Mohon tambahkan setidaknya satu URL repositori mahasiswa.');
             return;
         }
 
         loadingIndicator.classList.remove('hidden');
-        resultsSection.classList.add('hidden'); // Hide previous results
-        noResultsDiv.classList.add('hidden'); // Hide no results message
-        mhVsGhResultsTableBody.innerHTML = ''; // Clear any residual data
-        mhVsMhResultsTableBody.innerHTML = ''; // Clear any residual data
+        resultsSection.classList.add('hidden');
+        noResultsDiv.classList.add('hidden');
+        mhVsGhResultsTableBody.innerHTML = '';
+        // REMOVED: mhVsMhResultsTableBody.innerHTML = '';
 
         try {
             const formData = new FormData();
-            studentFiles.forEach(file => {
-                formData.append('student_files', file);
-            });
+            formData.append('student_repo_urls', JSON.stringify(studentRepoUrls));
             formData.append('github_urls', JSON.stringify(githubUrls));
 
             const response = await fetch('/analyze_code', {
@@ -164,23 +179,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(`HTTP error! Status: ${response.status}. Message: ${errorData.error || 'Unknown error'}`);
+                const errorMessage = errorData.error || `Kesalahan tidak diketahui (Status: ${response.status})`;
+                throw new Error(errorMessage);
             }
 
             const data = await response.json();
 
-            displayResults(data.mh_vs_gh_results, data.mh_vs_mh_results);
+            displayResults(data.mh_vs_gh_results); // ONLY PASS ONE PARAMETER
         } catch (error) {
             console.error('Error during analysis:', error);
-            alert(`Terjadi kesalahan saat analisis: ${error.message}. Silakan cek konsol browser untuk detail.`);
+            alert(`Terjadi kesalahan saat analisis: ${error.message}`);
         } finally {
             loadingIndicator.classList.add('hidden');
         }
     });
 
-    // NEW EVENT LISTENERS FOR CLEAR BUTTONS
+    // Clear Buttons Logic - NO CHANGES
     clearStudentFilesBtn.addEventListener('click', async () => {
-        if (!confirm('Apakah Anda yakin ingin menghapus SEMUA file mahasiswa yang diunggah?')) {
+        if (!confirm('Apakah Anda yakin ingin menghapus SEMUA file mahasiswa yang diunduh ke server? Ini tidak menghapus repositori GitHub asli.')) {
             return;
         }
         try {
@@ -189,10 +205,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const errorData = await response.json();
                 throw new Error(`HTTP error! Status: ${response.status}. Message: ${errorData.error || 'Unknown error'}`);
             }
-            alert('Semua file mahasiswa berhasil dihapus.');
-            studentFiles = []; // Clear local array
-            updateFileList(); // Update UI
-            resultsSection.classList.add('hidden'); // Hide results as files are cleared
+            alert('Semua file mahasiswa di server berhasil dihapus.');
+            studentRepoUrls = [];
+            updateStudentRepoList();
+            resultsSection.classList.add('hidden');
         } catch (error) {
             console.error('Error clearing student files:', error);
             alert(`Gagal menghapus file mahasiswa: ${error.message}.`);
@@ -200,7 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     clearGithubFilesBtn.addEventListener('click', async () => {
-        if (!confirm('Apakah Anda yakin ingin menghapus SEMUA file GitHub yang diunduh?')) {
+        if (!confirm('Apakah Anda yakin ingin menghapus SEMUA file GitHub yang diunduh ke server? Ini tidak menghapus repositori GitHub asli.')) {
             return;
         }
         try {
@@ -209,19 +225,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 const errorData = await response.json();
                 throw new Error(`HTTP error! Status: ${response.status}. Message: ${errorData.error || 'Unknown error'}`);
             }
-            alert('Semua file GitHub berhasil dihapus.');
-            githubUrls = []; // Clear local array of URLs (this doesn't delete from data/github directly)
-            updateGithubUrlList(); // Update UI (only URLs, not actual files)
-            // Note: The actual files in data/github are only cleared by the backend endpoint
-            // or when a new analysis run explicitly calls clear_github_files() before scraping.
-            resultsSection.classList.add('hidden'); // Hide results as files are cleared
+            alert('Semua file GitHub di server berhasil dihapus.');
+            githubUrls = [];
+            updateGithubUrlList();
+            resultsSection.classList.add('hidden');
         } catch (error) {
             console.error('Error clearing GitHub files:', error);
             alert(`Gagal menghapus file GitHub: ${error.message}.`);
         }
     });
 
-    // Initial UI updates
-    updateFileList();
+    // Initial UI updates - NO CHANGES
+    updateStudentRepoList();
     updateGithubUrlList();
 });

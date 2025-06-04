@@ -90,7 +90,7 @@ section {
 }
 
 
-#fileList, #githubUrlList {
+#fileList, #githubUrlList,#studentRepoUrlList {
     margin-top: 15px;
     background-color: #e9ecef;
     padding: 10px;
@@ -100,7 +100,7 @@ section {
     border: 1px solid #ced4da;
 }
 
-#fileList p, #githubUrlList p {
+#fileList p, #githubUrlList p,#studentRepoUrlList p {
     margin: 5px 0;
     padding: 5px 10px;
     background-color: #f8f9fa;
@@ -133,7 +133,8 @@ section {
     margin-bottom: 15px;
 }
 
-#githubUrlInput {
+#githubUrlInput,
+#studentRepoUrlInput {
     flex-grow: 1;
     padding: 10px 15px;
     border: 1px solid #ced4da;
@@ -141,7 +142,8 @@ section {
     font-size: 1em;
 }
 
-#addGithubUrl {
+#addGithubUrl,
+#addStudentRepoUrl {
     background-color: #007bff;
     color: white;
     padding: 10px 20px;
@@ -152,7 +154,8 @@ section {
     transition: background-color 0.3s ease;
 }
 
-#addGithubUrl:hover {
+#addGithubUrl:hover,
+#addStudentRepoUrl:hover {
     background-color: #0056b3;
 }
 

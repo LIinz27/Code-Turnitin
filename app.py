@@ -2,6 +2,7 @@ import os
 import json
 from flask import Flask, request, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
+import atexit 
 
 # Import fungsi dari skrip Anda
 from github_scraper import parse_github_blob_url_to_raw, download_raw_code, scrape_repo_files
@@ -20,14 +21,13 @@ app.config['UPLOAD_FOLDER_GITHUB'] = UPLOAD_FOLDER_GITHUB
 os.makedirs(UPLOAD_FOLDER_MAHASISWA, exist_ok=True)
 os.makedirs(UPLOAD_FOLDER_GITHUB, exist_ok=True)
 
-# Helper function to clear student files (optional, for fresh runs)
+# Helper functions (clear_student_files, clear_github_files, etc. - NO CHANGES)
 def clear_student_files():
     print(f"Membersihkan folder: {app.config['UPLOAD_FOLDER_MAHASISWA']}")
     count = 0
     for filename in os.listdir(app.config['UPLOAD_FOLDER_MAHASISWA']):
         file_path = os.path.join(app.config['UPLOAD_FOLDER_MAHASISWA'], filename)
         try:
-            # Pastikan hanya menghapus file, bukan subdirektori atau file khusus seperti .gitkeep
             if os.path.isfile(file_path) and not file_path.endswith('.gitkeep'):
                 os.unlink(file_path)
                 count += 1
@@ -36,14 +36,12 @@ def clear_student_files():
     print(f"Berhasil menghapus {count} file mahasiswa.")
     return count
 
-# Helper function to clear github files (optional, for fresh runs)
 def clear_github_files():
     print(f"Membersihkan folder: {app.config['UPLOAD_FOLDER_GITHUB']}")
     count = 0
     for filename in os.listdir(app.config['UPLOAD_FOLDER_GITHUB']):
         file_path = os.path.join(app.config['UPLOAD_FOLDER_GITHUB'], filename)
         try:
-            # Pastikan hanya menghapus file, bukan subdirektori atau file khusus seperti .gitkeep
             if os.path.isfile(file_path) and not file_path.endswith('.gitkeep'):
                 os.unlink(file_path)
                 count += 1
@@ -52,19 +50,14 @@ def clear_github_files():
     print(f"Berhasil menghapus {count} file GitHub.")
     return count
 
-# --- API Endpoints ---
-
-# Endpoint untuk menyajikan file statis (HTML, CSS, JS)
 @app.route('/')
 def index():
     return send_from_directory('.', 'index.html')
 
 @app.route('/<path:filename>')
 def serve_static(filename):
-    # Menyajikan file CSS dan JS
     return send_from_directory('.', filename)
 
-# NEW ENDPOINT: Clear Mahasiswa Files
 @app.route('/clear_mahasiswa_files', methods=['POST'])
 def clear_mahasiswa_files_endpoint():
     try:
@@ -74,7 +67,6 @@ def clear_mahasiswa_files_endpoint():
         print(f"Error di endpoint /clear_mahasiswa_files: {e}")
         return jsonify({"error": "Gagal menghapus file mahasiswa.", "details": str(e)}), 500
 
-# NEW ENDPOINT: Clear GitHub Files
 @app.route('/clear_github_files', methods=['POST'])
 def clear_github_files_endpoint():
     try:
@@ -85,78 +77,74 @@ def clear_github_files_endpoint():
         return jsonify({"error": "Gagal menghapus file GitHub.", "details": str(e)}), 500
 
 
-# Endpoint untuk menjalankan analisis
+# Endpoint untuk menjalankan analisis (NO CHANGES)
 @app.route('/analyze_code', methods=['POST'])
 def analyze_code():
     print("\n--- Memulai Analisis ---")
     
-    # 1. Clear previous student files for a fresh run
-    # Kita tetap memanggil ini karena setiap kali analisis dijalankan, kita menganggap unggahan yang baru adalah input utama.
     clear_student_files() 
     
-    # 2. Handle Student File Uploads
-    uploaded_student_files = []
-    if 'student_files' not in request.files:
-        print("No 'student_files' part in the request. Continuing without student files.")
-    else:
-        files = request.files.getlist('student_files')
-        if not files or all(f.filename == '' for f in files):
-            print("No selected student file(s).")
-        else:
-            for file in files:
-                if file.filename: # Pastikan nama file tidak kosong
-                    filename = secure_filename(file.filename)
-                    file_path = os.path.join(app.config['UPLOAD_FOLDER_MAHASISWA'], filename)
-                    file.save(file_path)
-                    uploaded_student_files.append(filename)
-            print(f"File mahasiswa diunggah: {uploaded_student_files}")
+    student_repo_urls_str = request.form.get('student_repo_urls', '[]')
+    try:
+        student_repo_urls = json.loads(student_repo_urls_str)
+    except json.JSONDecodeError:
+        return jsonify({"error": "Invalid JSON for student_repo_urls"}), 400
+
+    print(f"URL Repositori Mahasiswa diterima: {student_repo_urls}")
+    
+    uploaded_student_files = [] 
+    if not student_repo_urls:
+        return jsonify({"error": "Mohon tambahkan setidaknya satu URL repositori mahasiswa."}), 400
+
+    for repo_url in student_repo_urls:
+        print(f"Mulai scraping repositori mahasiswa: {repo_url}")
+        downloaded = scrape_repo_files(repo_url, app.config['UPLOAD_FOLDER_MAHASISWA'])
+        uploaded_student_files.extend(downloaded)
+        print(f"Selesai scraping {repo_url}. Total file dari repo ini: {len(downloaded)}")
     
     if not uploaded_student_files:
-        return jsonify({"error": "Mohon unggah setidaknya satu file kode mahasiswa."}), 400
+        return jsonify({
+            "error": "Gagal mengunduh file kode dari repositori mahasiswa yang diberikan. "
+                     "Pastikan URL repositori benar dan mengandung file kode yang didukung (mis. .js, .py, .java, dll.)."
+        }), 400
 
-    # 3. Handle GitHub Repository URLs (and scraping)
     github_urls_str = request.form.get('github_urls', '[]')
     try:
-        github_repo_urls = json.loads(github_urls_str) # Kini ini adalah URL repo
+        github_repo_urls = json.loads(github_urls_str)
     except json.JSONDecodeError:
         return jsonify({"error": "Invalid JSON for github_urls"}), 400
 
     print(f"URL Repositori GitHub diterima: {github_repo_urls}")
     
-    # Clear previous GitHub files (penting jika Anda ingin selalu scrape ulang)
     clear_github_files()
 
     scraped_github_files = []
-    for repo_url in github_repo_urls:
-        print(f"Mulai scraping repositori: {repo_url}")
-        # Panggil fungsi scrape_repo_files yang baru
-        downloaded = scrape_repo_files(repo_url, app.config['UPLOAD_FOLDER_GITHUB'])
-        scraped_github_files.extend(downloaded)
-        print(f"Selesai scraping {repo_url}. Total file dari repo ini: {len(downloaded)}")
-    
-    if not scraped_github_files and github_repo_urls: # Jika ada URL tapi tidak ada file yang di-scrape
-        print("Tidak ada file kode yang ditemukan dari URL GitHub yang diberikan atau terjadi masalah saat scraping.")
-        # Anda bisa memilih untuk mengembalikan error di sini jika file GitHub wajib ada
-        # return jsonify({"error": "Tidak ada file GitHub yang berhasil di-scrape atau diunduh dari URL yang diberikan."}), 400
-    elif not scraped_github_files and not github_repo_urls:
-         print("Tidak ada URL GitHub yang diberikan.")
+    if github_repo_urls:
+        for repo_url in github_repo_urls:
+            print(f"Mulai scraping repositori pembanding: {repo_url}")
+            downloaded = scrape_repo_files(repo_url, app.config['UPLOAD_FOLDER_GITHUB'])
+            scraped_github_files.extend(downloaded)
+            print(f"Selesai scraping {repo_url}. Total file dari repo ini: {len(downloaded)}")
+        
+        if not scraped_github_files:
+            return jsonify({
+                "error": "Gagal mengunduh file kode dari repositori GitHub pembanding yang diberikan. "
+                         "Pastikan URL repositori benar dan mengandung file kode yang didukung (mis. .js, .py, .java, dll.)."
+            }), 400
+    else:
+         print("Tidak ada URL GitHub pembanding yang diberikan.")
 
-
-    # 4. Perform Similarity Check
     results_mh_vs_gh = []
-    results_mh_vs_mh = []
 
     mahasiswa_dir = app.config['UPLOAD_FOLDER_MAHASISWA']
     github_dir = app.config['UPLOAD_FOLDER_GITHUB']
 
-    # Load all student code tokens
     mahasiswa_codes = {}
     for m_file in uploaded_student_files:
         m_path = os.path.join(mahasiswa_dir, m_file)
         if os.path.isfile(m_path):
             mahasiswa_codes[m_file] = preprocess_code(m_path)
 
-    # Load all github code tokens (only the ones we just scraped or already existed from repo scrape)
     github_codes = {}
     for g_file in scraped_github_files:
         g_path = os.path.join(github_dir, g_file)
@@ -165,8 +153,7 @@ def analyze_code():
 
     print("\nMemulai perbandingan...")
 
-    # Compare Mahasiswa vs GitHub
-    if github_codes: # Hanya bandingkan jika ada file GitHub
+    if github_codes:
         for m_file, tokens_m in mahasiswa_codes.items():
             for g_file, tokens_g in github_codes.items():
                 score = jaccard_similarity(tokens_m, tokens_g)
@@ -178,34 +165,41 @@ def analyze_code():
         print(f"Perbandingan Mahasiswa vs GitHub selesai. Total: {len(results_mh_vs_gh)} pasangan.")
     else:
         print("Tidak ada file GitHub untuk dibandingkan.")
-
-    # Compare Mahasiswa vs Mahasiswa
-    mahasiswa_files_list = list(mahasiswa_codes.keys())
-    if len(mahasiswa_files_list) > 1: # Hanya bandingkan jika ada lebih dari 1 file mahasiswa
-        for i in range(len(mahasiswa_files_list)):
-            for j in range(i + 1, len(mahasiswa_files_list)):
-                file1 = mahasiswa_files_list[i]
-                file2 = mahasiswa_files_list[j]
-                
-                tokens1 = mahasiswa_codes[file1]
-                tokens2 = mahasiswa_codes[file2]
-                
-                score = jaccard_similarity(tokens1, tokens2)
-                results_mh_vs_mh.append({
-                    "file1": file1,
-                    "file2": file2,
-                    "score": round(score * 100, 2)
-                })
-        print(f"Perbandingan Mahasiswa vs Mahasiswa selesai. Total: {len(results_mh_vs_mh)} pasangan.")
-    else:
-        print("Tidak cukup file mahasiswa untuk perbandingan antar-mahasiswa.")
             
-    # 5. Return Results
     print("Analisis selesai. Mengirim hasil.")
     return jsonify({
         "mh_vs_gh_results": results_mh_vs_gh,
-        "mh_vs_mh_results": results_mh_vs_mh
     })
+
+# --- FUNGSI UNTUK PEMBERSIHAN SAAT SHUTDOWN (DENGAN PILIHAN) ---
+def cleanup_on_shutdown_with_choice():
+    """
+    Fungsi ini akan dipanggil saat aplikasi Flask dimatikan,
+    memberikan pilihan kepada pengguna untuk menghapus data.
+    """
+    print("\n-------------------------------------------------")
+    print("Aplikasi Flask dimatikan.")
+    print("Apakah Anda ingin menghapus semua file repositori yang telah diunduh (data/mahasiswa dan data/github)?")
+    
+    # MENGAMBIL INPUT DARI PENGGUNA - HATI-HATI DENGAN INI SAAT SHUTDOWN!
+    choice = input("Ketik 'ya' untuk menghapus, atau 'tidak' untuk mempertahankan: ").lower().strip()
+
+    if choice == 'ya':
+        print("Melakukan pembersihan data...")
+        clear_student_files()
+        clear_github_files()
+        print("Pembersihan data selesai.")
+    else:
+        print("File repositori dipertahankan.")
+    print("-------------------------------------------------")
+
+# Daftarkan fungsi pembersihan agar dieksekusi saat aplikasi dimatikan
+# Pastikan ini hanya dieksekusi oleh proses utama Flask, bukan reloader (jika debug=True)
+if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+    atexit.register(cleanup_on_shutdown_with_choice)
+# Atau secara sederhana selalu: atexit.register(cleanup_on_shutdown_with_choice)
+# Namun, 'WERKZEUG_RUN_MAIN' membantu menghindari prompt ganda saat debug=True.
+
 
 if __name__ == '__main__':
     app.run(debug=True)
