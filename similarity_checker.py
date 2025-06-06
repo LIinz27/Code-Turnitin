@@ -1,114 +1,247 @@
-# similarity_checker.py (DIUBAH UNTUK JS)
-
 import os
 import re
+import hashlib # Untuk hashing yang lebih kuat
 
-def preprocess_code(path):
+def preprocess_code(path, lang_keywords=None):
     """
-    Membaca file kode, menghapus komentar, menormalisasi spasi, dan
-    mengembalikan set token.
+    Membaca file kode, menghapus komentar, menormalisasi spasi, mengganti identifier,
+    dan mengembalikan LIST token.
+    Menambahkan parameter lang_keywords untuk daftar keyword bahasa.
     """
     try:
         with open(path, "r", encoding="utf-8") as f:
             code = f.read()
     except Exception as e:
         print(f"Error membaca file {path}: {e}")
-        return set()
+        return [] # Return empty list if error
 
-    # Hapus komentar Python (opsional, jika Anda hanya fokus pada JS)
-    code = re.sub(r'#[^\n]*', '', code)
-    
-    # Hapus komentar JavaScript (single-line // dan multi-line /* ... */)
-    code = re.sub(r'//[^\n]*', '', code)
-    code = re.sub(r'/\*[\s\S]*?\*/', '', code)
+    # 1. Hapus komentar (general untuk JS/Python, bisa diperluas)
+    code = re.sub(r'//[^\n]*', '', code)  # Single-line JS
+    code = re.sub(r'/\*[\s\S]*?\*/', '', code) # Multi-line JS
+    code = re.sub(r'#[^\n]*', '', code)   # Python comments
 
-    # Hapus string literals (agar tidak dianggap token yang berbeda hanya karena nilai string berbeda)
-    # Ini bisa jadi rumit, tergantung seberapa agresif Anda ingin menormalisasi.
-    # Contoh sederhana: ganti semua string dengan placeholder
+    # 2. Hapus string literals
     code = re.sub(r'"[^"]*"', 'STRING_LITERAL', code)
     code = re.sub(r"'[^']*'", 'STRING_LITERAL', code)
-    code = re.sub(r'`[^`]*`', 'STRING_LITERAL', code)
+    code = re.sub(r'`[^`]*`', 'STRING_LITERAL', code) # Template literals JS
 
-    # Normalisasi spasi: ganti baris baru dan spasi berlebih dengan satu spasi
+    # 3. Normalisasi Identifier (MOSES-like)
+    # Daftar keyword bahasa yang umum. Ini bisa diperluas atau jadi parameter.
+    default_keywords = set([
+        'if', 'else', 'for', 'while', 'do', 'return', 'function', 'var', 'const', 'let', 'class',
+        'public', 'private', 'protected', 'static', 'void', 'int', 'float', 'double', 'char', 'bool',
+        'true', 'false', 'null', 'this', 'super', 'new', 'import', 'export', 'default', 'try', 'catch', 'finally',
+        'async', 'await', 'break', 'continue', 'switch', 'case', 'default', 'in', 'of', 'typeof', 'instanceof',
+        'def', 'class', 'import', 'from', 'as', 'with', 'open', 'lambda', 'yield', 'None', 'True', 'False',
+        'and', 'or', 'not', # Python logic
+        # Tambahkan lebih banyak keyword sesuai kebutuhan bahasa yang ingin didukung
+    ])
+    
+    if lang_keywords:
+        combined_keywords = default_keywords.union(set(lang_keywords))
+    else:
+        combined_keywords = default_keywords
+
+    # Cari semua kemungkinan identifier (kata-kata alfanumerik)
+    # Menggunakan regex yang lebih spesifik untuk identifier (bukan hanya kata)
+    all_words = re.findall(r'[a-zA-Z_][a-zA-Z0-9_]*', code)
+    
+    identifier_map = {}
+    generic_id_counter = 0
+
+    # Lakukan penggantian identifier pada copy dari kode asli
+    temp_code = code
+    replacements = [] # Simpan pasangan (original, replacement)
+
+    for word in all_words:
+        # Hanya ganti jika bukan keyword dan belum pernah diganti
+        if word not in combined_keywords and word not in identifier_map:
+            # Gunakan prefix berbeda untuk variabel dan fungsi jika bisa dibedakan (lebih canggih)
+            # Untuk sederhana, gunakan VAR_
+            identifier_map[word] = f'VAR_{generic_id_counter}'
+            replacements.append((word, identifier_map[word]))
+            generic_id_counter += 1
+    
+    # Lakukan penggantian secara aman menggunakan word boundary
+    # Iterasi dari yang terpanjang ke terpendek untuk menghindari penggantian parsial
+    replacements.sort(key=lambda x: len(x[0]), reverse=True)
+    for original_id, generic_id in replacements:
+        # Gunakan re.escape untuk menangani identifier yang mungkin mengandung karakter khusus regex
+        temp_code = re.sub(r'\b' + re.escape(original_id) + r'\b', generic_id, temp_code)
+    
+    code = temp_code # Update kode setelah normalisasi identifier
+
+    # 4. Normalisasi spasi: ganti baris baru dan spasi berlebih dengan satu spasi
     code = re.sub(r'[\s]+', ' ', code)
     
-    # Konversi ke huruf kecil (opsional, bisa mengurangi akurasi jika case-sensitivity penting)
-    # code = code.lower()
-
-    # Tokenisasi: pisahkan berdasarkan non-alfanumerik dan non-underscore
-    # Ini akan memisahkan operator, kurung kurawal, dll.
+    # 5. Tokenisasi akhir: pisahkan berdasarkan non-alfanumerik dan non-underscore
+    # Return LIST of tokens for k-gram generation
     tokens = re.findall(r'[a-zA-Z0-9_]+', code)
-    return set(tokens)
+    return tokens
 
-def jaccard_similarity(tokens_a, tokens_b):
-    intersection = tokens_a.intersection(tokens_b)
-    union = tokens_a.union(tokens_b)
-    if not union: # Hindari pembagian dengan nol
-        return 0.0
+def generate_k_grams(tokens, k):
+    """
+    Menghasilkan k-gram dari daftar token.
+    K-gram adalah tuple dari k token berurutan.
+    """
+    if len(tokens) < k:
+        return []
+    k_grams = []
+    for i in range(len(tokens) - k + 1):
+        k_grams.append(tuple(tokens[i : i + k]))
+    return k_grams
+
+def hash_k_gram(k_gram):
+    """
+    Menghitung hash SHA-1 untuk k-gram.
+    Mengubah tuple token menjadi string sebelum hashing.
+    """
+    s = str(k_gram).encode('utf-8')
+    return int(hashlib.sha1(s).hexdigest(), 16)
+
+def winnowing(hashes, w):
+    """
+    Menerapkan algoritma Winnowing untuk memilih fingerprint.
+    hashes: daftar hash k-gram
+    w: ukuran jendela
+    """
+    if not hashes:
+        return set()
+
+    fingerprints = set()
+    n = len(hashes)
+
+    # Inisialisasi jendela pertama
+    window = hashes[0:w]
+    if not window: # Handle case where w is very small or hashes is empty
+        return set()
+
+    # Fungsi pembantu untuk mendapatkan indeks hash minimum di jendela
+    def get_min_hash_index(current_window):
+        min_val = float('inf')
+        min_idx_in_window = -1
+        for i, val in enumerate(current_window):
+            if val <= min_val: # Pilih yang paling kanan jika ada duplikat
+                min_val = val
+                min_idx_in_window = i
+        return min_idx_in_window
+
+    # Iterasi melalui jendela
+    for i in range(n - w + 1):
+        current_window = hashes[i : i + w]
+        min_idx = get_min_hash_index(current_window)
+        # Tambahkan hash minimum ke set fingerprint
+        fingerprints.add(current_window[min_idx])
+    
+    return fingerprints
+
+
+def calculate_moss_similarity(fingerprints_a, fingerprints_b):
+    """
+    Menghitung kemiripan MOSS-like berdasarkan Jaccard Similarity dari fingerprint.
+    """
+    intersection = fingerprints_a.intersection(fingerprints_b)
+    union = fingerprints_a.union(fingerprints_b)
+    if not union:
+        return 0.0 # Hindari pembagian dengan nol
     return len(intersection) / len(union)
 
-# Bagian compare_all dan main __name__ == "__main__": bisa Anda gunakan di main.py sekarang
-# Jika Anda ingin tetap bisa menjalankan similarity_checker.py secara mandiri:
+# Fungsi utama perbandingan yang akan dipanggil dari app.py
+def compare_code_moss_like(path_a, path_b, k=5, w=10, lang_keywords=None):
+    """
+    Membandingkan dua file kode menggunakan pendekatan MOSS-like (Winnowing).
+    Args:
+        path_a (str): Jalur ke file kode pertama.
+        path_b (str): Jalur ke file kode kedua.
+        k (int): Ukuran k-gram.
+        w (int): Ukuran jendela Winnowing.
+        lang_keywords (set): Set keyword spesifik bahasa untuk normalisasi.
+
+    Returns:
+        float: Skor kemiripan antara 0.0 dan 1.0.
+    """
+    
+    # Pre-process dan dapatkan list token
+    tokens_a = preprocess_code(path_a, lang_keywords)
+    tokens_b = preprocess_code(path_b, lang_keywords)
+
+    if not tokens_a or not tokens_b:
+        # Jika salah satu file kosong setelah pre-processing, kemiripan 0
+        return 0.0
+
+    # Generate k-grams
+    k_grams_a = generate_k_grams(tokens_a, k)
+    k_grams_b = generate_k_grams(tokens_b, k)
+    
+    if not k_grams_a or not k_grams_b:
+        return 0.0
+
+    # Hash k-grams
+    hashes_a = [hash_k_gram(kg) for kg in k_grams_a]
+    hashes_b = [hash_k_gram(kg) for kg in k_grams_b]
+
+    # Apply Winnowing to get fingerprints
+    fingerprints_a = winnowing(hashes_a, w)
+    fingerprints_b = winnowing(hashes_b, w)
+
+    # Calculate MOSS-like similarity (Jaccard of fingerprints)
+    similarity_score = calculate_moss_similarity(fingerprints_a, fingerprints_b)
+    return similarity_score
+
+# Untuk pengujian mandiri
 if __name__ == "__main__":
-    hasil = []
-    mahasiswa_dir = "data/mahasiswa"
-    github_dir = "data/github"
+    # Buat file dummy untuk pengujian
+    if not os.path.exists("data/temp"):
+        os.makedirs("data/temp")
 
-    # Pastikan direktori mahasiswa ada dan berisi file
-    if not os.path.exists(mahasiswa_dir) or not os.listdir(mahasiswa_dir):
-        print(f"Direktori '{mahasiswa_dir}' kosong atau tidak ada. Mohon masukkan file kode mahasiswa.")
-    else:
-        # Load all student code tokens once
-        mahasiswa_codes = {}
-        for m_file in os.listdir(mahasiswa_dir):
-            m_path = os.path.join(mahasiswa_dir, m_file)
-            if os.path.isfile(m_path):
-                mahasiswa_codes[m_file] = preprocess_code(m_path)
+    code1 = """
+    function calculateSum(a, b) {
+        let result = a + b;
+        return result;
+    }
+    """
+    code2 = """
+    // This is a test file
+    function computeTotal(x, y) {
+        var sum_val = x + y; // Changed variable names
+        return sum_val;
+    }
+    """
+    code3 = """
+    def add_numbers(num1, num2):
+        res = num1 + num2
+        return res
+    """
+    code4 = """
+    // Completely different code
+    function factorial(n) {
+        if (n === 0) return 1;
+        return n * factorial(n - 1);
+    }
+    """
 
-        # Load all github code tokens once
-        github_codes = {}
-        if not os.path.exists(github_dir) or not os.listdir(github_dir):
-            print(f"Direktori '{github_dir}' kosong atau tidak ada. Mohon jalankan scraper GitHub.")
-        else:
-            for g_file in os.listdir(github_dir):
-                g_path = os.path.join(github_dir, g_file)
-                if os.path.isfile(g_path):
-                    github_codes[g_file] = preprocess_code(g_path)
+    with open("data/temp/code1.js", "w") as f: f.write(code1)
+    with open("data/temp/code2.js", "w") as f: f.write(code2)
+    with open("data/temp/code3.py", "w") as f: f.write(code3)
+    with open("data/temp/code4.js", "w") as f: f.write(code4)
 
-        # Compare Mahasiswa vs GitHub
-        print("Hasil Deteksi Kemiripan Kode Mahasiswa vs GitHub:\n")
-        for m_file, tokens_m in mahasiswa_codes.items():
-            for g_file, tokens_g in github_codes.items():
-                score = jaccard_similarity(tokens_m, tokens_g)
-                hasil.append({
-                    "mahasiswa_file": m_file,
-                    "github_file": g_file,
-                    "score": round(score * 100, 2)
-                })
-        
-        for r in sorted(hasil, key=lambda x: x['score'], reverse=True):
-            if r['score'] > 0:
-                print(f"{r['mahasiswa_file']} vs {r['github_file']} → {r['score']}% mirip")
-        
-        # Compare Mahasiswa vs Mahasiswa
-        print("\nHasil Deteksi Kemiripan Kode Mahasiswa vs Mahasiswa:\n")
-        hasil_mh_mh = []
-        mahasiswa_files_list = list(mahasiswa_codes.keys())
-        for i in range(len(mahasiswa_files_list)):
-            for j in range(i + 1, len(mahasiswa_files_list)):
-                file1 = mahasiswa_files_list[i]
-                file2 = mahasiswa_files_list[j]
-                
-                tokens1 = mahasiswa_codes[file1]
-                tokens2 = mahasiswa_codes[file2]
-                
-                score = jaccard_similarity(tokens1, tokens2)
-                hasil_mh_mh.append({
-                    "file1": file1,
-                    "file2": file2,
-                    "score": round(score * 100, 2)
-                })
-        
-        for r in sorted(hasil_mh_mh, key=lambda x: x['score'], reverse=True):
-            if r['score'] > 0:
-                print(f"{r['file1']} vs {r['file2']} → {r['score']}% mirip")
+    print("--- Pengujian MOSS-like Similarity ---")
+
+    # Kasus 1: Kode mirip dengan perubahan nama variabel
+    score1_2 = compare_code_moss_like("data/temp/code1.js", "data/temp/code2.js", k=3, w=6)
+    print(f"code1.js vs code2.js: {round(score1_2 * 100, 2)}% mirip (diharapkan tinggi)")
+
+    # Kasus 2: Kode sangat berbeda
+    score1_4 = compare_code_moss_like("data/temp/code1.js", "data/temp/code4.js", k=3, w=6)
+    print(f"code1.js vs code4.js: {round(score1_4 * 100, 2)}% mirip (diharapkan rendah)")
+
+    # Kasus 3: Bahasa berbeda (diharapkan rendah, kecuali ada kemiripan struktural)
+    score1_3 = compare_code_moss_like("data/temp/code1.js", "data/temp/code3.py", k=3, w=6)
+    print(f"code1.js vs code3.py: {round(score1_3 * 100, 2)}% mirip (diharapkan rendah)")
+    
+    # Membersihkan file dummy
+    # os.remove("data/temp/code1.js")
+    # os.remove("data/temp/code2.js")
+    # os.remove("data/temp/code3.py")
+    # os.remove("data/temp/code4.js")
+    # os.rmdir("data/temp") # Hanya jika folder kosong

@@ -2,26 +2,25 @@ import os
 import json
 from flask import Flask, request, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
-import atexit 
+import atexit
 
 # Import fungsi dari skrip Anda
 from github_scraper import parse_github_blob_url_to_raw, download_raw_code, scrape_repo_files
-from similarity_checker import preprocess_code, jaccard_similarity
+from similarity_checker import preprocess_code, compare_code_moss_like # UBAH IMPORT DI SINI
 
 app = Flask(__name__)
 
-# Konfigurasi direktori unggahan
+# Konfigurasi direktori unggahan (NO CHANGES)
 UPLOAD_FOLDER_MAHASISWA = 'data/mahasiswa'
 UPLOAD_FOLDER_GITHUB = 'data/github'
 
 app.config['UPLOAD_FOLDER_MAHASISWA'] = UPLOAD_FOLDER_MAHASISWA
 app.config['UPLOAD_FOLDER_GITHUB'] = UPLOAD_FOLDER_GITHUB
 
-# Pastikan direktori ada
 os.makedirs(UPLOAD_FOLDER_MAHASISWA, exist_ok=True)
 os.makedirs(UPLOAD_FOLDER_GITHUB, exist_ok=True)
 
-# Helper functions (clear_student_files, clear_github_files, etc. - NO CHANGES)
+# Helper functions (clear_student_files, clear_github_files, index, serve_static, clear_mahasiswa_files_endpoint, clear_github_files_endpoint - NO CHANGES)
 def clear_student_files():
     print(f"Membersihkan folder: {app.config['UPLOAD_FOLDER_MAHASISWA']}")
     count = 0
@@ -77,7 +76,7 @@ def clear_github_files_endpoint():
         return jsonify({"error": "Gagal menghapus file GitHub.", "details": str(e)}), 500
 
 
-# Endpoint untuk menjalankan analisis (NO CHANGES)
+# Endpoint untuk menjalankan analisis (UBAH BAGIAN PERBANDINGAN)
 @app.route('/analyze_code', methods=['POST'])
 def analyze_code():
     print("\n--- Memulai Analisis ---")
@@ -139,27 +138,25 @@ def analyze_code():
     mahasiswa_dir = app.config['UPLOAD_FOLDER_MAHASISWA']
     github_dir = app.config['UPLOAD_FOLDER_GITHUB']
 
-    mahasiswa_codes = {}
-    for m_file in uploaded_student_files:
-        m_path = os.path.join(mahasiswa_dir, m_file)
-        if os.path.isfile(m_path):
-            mahasiswa_codes[m_file] = preprocess_code(m_path)
+    # --- BAGIAN PERBANDINGAN YANG DIUBAH ---
+    # Load all student code paths
+    mahasiswa_file_paths = [os.path.join(mahasiswa_dir, f) for f in uploaded_student_files if os.path.isfile(os.path.join(mahasiswa_dir, f))]
 
-    github_codes = {}
-    for g_file in scraped_github_files:
-        g_path = os.path.join(github_dir, g_file)
-        if os.path.isfile(g_path):
-            github_codes[g_file] = preprocess_code(g_path)
+    # Load all github code paths
+    github_file_paths = [os.path.join(github_dir, f) for f in scraped_github_files if os.path.isfile(os.path.join(github_dir, f))]
 
-    print("\nMemulai perbandingan...")
+    print("\nMemulai perbandingan menggunakan MOSS-like...")
 
-    if github_codes:
-        for m_file, tokens_m in mahasiswa_codes.items():
-            for g_file, tokens_g in github_codes.items():
-                score = jaccard_similarity(tokens_m, tokens_g)
+    if github_file_paths: # Hanya bandingkan jika ada file GitHub
+        for m_path in mahasiswa_file_paths:
+            m_filename = os.path.basename(m_path)
+            for g_path in github_file_paths:
+                g_filename = os.path.basename(g_path)
+                # Panggil fungsi perbandingan MOSS-like yang baru
+                score = compare_code_moss_like(m_path, g_path, k=5, w=10) # Sesuaikan k dan w jika perlu
                 results_mh_vs_gh.append({
-                    "source_file": m_file,
-                    "compared_file": g_file,
+                    "source_file": m_filename,
+                    "compared_file": g_filename,
                     "score": round(score * 100, 2)
                 })
         print(f"Perbandingan Mahasiswa vs GitHub selesai. Total: {len(results_mh_vs_gh)} pasangan.")
@@ -171,17 +168,12 @@ def analyze_code():
         "mh_vs_gh_results": results_mh_vs_gh,
     })
 
-# --- FUNGSI UNTUK PEMBERSIHAN SAAT SHUTDOWN (DENGAN PILIHAN) ---
+# --- FUNGSI UNTUK PEMBERSIHAN SAAT SHUTDOWN (DENGAN PILIHAN) - NO CHANGES ---
 def cleanup_on_shutdown_with_choice():
-    """
-    Fungsi ini akan dipanggil saat aplikasi Flask dimatikan,
-    memberikan pilihan kepada pengguna untuk menghapus data.
-    """
     print("\n-------------------------------------------------")
     print("Aplikasi Flask dimatikan.")
     print("Apakah Anda ingin menghapus semua file repositori yang telah diunduh (data/mahasiswa dan data/github)?")
     
-    # MENGAMBIL INPUT DARI PENGGUNA - HATI-HATI DENGAN INI SAAT SHUTDOWN!
     choice = input("Ketik 'ya' untuk menghapus, atau 'tidak' untuk mempertahankan: ").lower().strip()
 
     if choice == 'ya':
@@ -193,12 +185,8 @@ def cleanup_on_shutdown_with_choice():
         print("File repositori dipertahankan.")
     print("-------------------------------------------------")
 
-# Daftarkan fungsi pembersihan agar dieksekusi saat aplikasi dimatikan
-# Pastikan ini hanya dieksekusi oleh proses utama Flask, bukan reloader (jika debug=True)
 if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
     atexit.register(cleanup_on_shutdown_with_choice)
-# Atau secara sederhana selalu: atexit.register(cleanup_on_shutdown_with_choice)
-# Namun, 'WERKZEUG_RUN_MAIN' membantu menghindari prompt ganda saat debug=True.
 
 
 if __name__ == '__main__':
