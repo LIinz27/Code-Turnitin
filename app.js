@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // === DOM Elements ===
+    // === DOM Elements === (No new changes, just a reminder)
     const studentRepoUrlInput = document.getElementById('studentRepoUrlInput');
     const addStudentRepoUrlButton = document.getElementById('addStudentRepoUrl');
     const studentRepoUrlList = document.getElementById('studentRepoUrlList');
@@ -11,15 +11,49 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadingIndicator = document.getElementById('loadingIndicator');
     const resultsSection = document.getElementById('results-section');
     const mhVsGhResultsTableBody = document.querySelector('#mhVsGhResults tbody');
-    // REMOVED: const mhVsMhResultsTableBody = document.querySelector('#mhVsMhResults tbody');
     const noResultsDiv = document.getElementById('noResults');
 
     const clearStudentFilesBtn = document.getElementById('clearStudentFilesBtn');
     const clearGithubFilesBtn = document.getElementById('clearGithubFilesBtn');
 
+    // NEW: Modal related DOM elements
+    const codeCompareModal = document.getElementById('codeCompareModal');
+    const modalFilenameMhs = document.getElementById('modal-filename-mhs');
+    const modalFilenameGh = document.getElementById('modal-filename-gh');
+    const codeMhsPre = document.getElementById('code-mhs');
+    const codeGhPre = document.getElementById('code-gh');
+    // NEW: Get the close button
+    const closeButton = document.querySelector('.close-button');
+
+
+    // NEW: Scroll synchronization for code panes
+    const codePaneMhs = document.querySelector('.code-pane:nth-child(1)');
+    const codePaneGh = document.querySelector('.code-pane:nth-child(2)');
+    let isScrollingMhs = false;
+    let isScrollingGh = false;
+
+    codePaneMhs.addEventListener('scroll', () => {
+        if (!isScrollingGh) {
+            isScrollingMhs = true;
+            codePaneGh.scrollTop = codePaneMhs.scrollTop;
+        }
+        isScrollingGh = false;
+    });
+
+    codePaneGh.addEventListener('scroll', () => {
+        if (!isScrollingMhs) {
+            isScrollingGh = true;
+            codeMhsPre.scrollTop = codePaneGh.scrollTop; // Fix: use codeMhsPre.scrollTop
+        }
+        isScrollingMhs = false;
+    });
+
+
     // === Data Storage ===
     let studentRepoUrls = [];
     let githubUrls = [];
+    // Store full results with similar blocks for later display
+    let lastAnalysisResults = [];
 
     // === Functions ===
 
@@ -71,16 +105,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Function to display results in tables (UPDATED)
-    function displayResults(mhVsGhData) { // REMOVED mhVsMhData parameter
-        mhVsGhResultsTableBody.innerHTML = ''; // Clear previous results
-        // REMOVED: mhVsMhResultsTableBody.innerHTML = ''; // Clear previous results
+    // Function to display results in tables (UPDATED to include "Lihat Kode" button)
+    function displayResults(mhVsGhData) {
+        mhVsGhResultsTableBody.innerHTML = '';
 
         let hasSignificantResults = false;
+        lastAnalysisResults = mhVsGhData; // Save results for modal access
 
-        // Mahasiswa vs GitHub
         mhVsGhData.sort((a, b) => b.score - a.score);
-        mhVsGhData.forEach(result => {
+        mhVsGhData.forEach((result, index) => {
             if (result.score > 0) {
                 hasSignificantResults = true;
                 const row = mhVsGhResultsTableBody.insertRow();
@@ -90,23 +123,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 row.insertCell().textContent = result.source_file;
                 row.insertCell().textContent = result.compared_file;
                 row.insertCell().textContent = `${result.score}%`;
+                
+                // Add "Lihat Kode" button
+                const actionCell = row.insertCell();
+                const viewCodeBtn = document.createElement('button');
+                viewCodeBtn.textContent = 'Lihat Kode';
+                viewCodeBtn.classList.add('view-code-btn');
+                viewCodeBtn.setAttribute('data-index', index); // Store index to retrieve full result
+                viewCodeBtn.onclick = () => openCodeCompareModal(index); // Attach event listener
+                actionCell.appendChild(viewCodeBtn);
             }
         });
-
-        // REMOVED: Mahasiswa vs Mahasiswa section
-        // mhVsMhData.sort((a, b) => b.score - a.score);
-        // mhVsMhData.forEach(result => {
-        //     if (result.score > 0) {
-        //         hasSignificantResults = true;
-        //         const row = mhVsMhResultsTableBody.insertRow();
-        //         if (result.score >= 70) {
-        //             row.classList.add('high-similarity');
-        //         }
-        //         row.insertCell().textContent = result.file1;
-        //         row.insertCell().textContent = result.file2;
-        //         row.insertCell().textContent = `${result.score}%`;
-        //     }
-        // });
 
         if (!hasSignificantResults) {
             noResultsDiv.classList.remove('hidden');
@@ -116,7 +143,108 @@ document.addEventListener('DOMContentLoaded', () => {
         resultsSection.classList.remove('hidden');
     }
 
-    // === Event Listeners ===
+    // NEW: Function to open code comparison modal
+    async function openCodeCompareModal(resultIndex) {
+        const result = lastAnalysisResults[resultIndex];
+        if (!result) return;
+
+        modalFilenameMhs.textContent = result.source_file;
+        modalFilenameGh.textContent = result.compared_file;
+        
+        codeMhsPre.innerHTML = 'Memuat kode...';
+        codeGhPre.innerHTML = 'Memuat kode...';
+        codeCompareModal.style.display = 'block'; // Show the modal
+
+        try {
+            // Fetch code content for student file
+            const responseMhs = await fetch('/get_code_content', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filename: result.source_file, file_type: 'mahasiswa' })
+            });
+            const dataMhs = await responseMhs.json();
+            const codeMhs = dataMhs.content;
+
+            // Fetch code content for GitHub file
+            const responseGh = await fetch('/get_code_content', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filename: result.compared_file, file_type: 'github' })
+            });
+            const dataGh = await responseGh.json();
+            const codeGh = dataGh.content;
+
+            // Display and highlight code
+            displayAndHighlightCode(codeMhs, result.similar_blocks_mhs, codeMhsPre);
+            displayAndHighlightCode(codeGh, result.similar_blocks_gh, codeGhPre);
+
+            // Apply highlight.js
+            hljs.highlightElement(codeMhsPre);
+            hljs.highlightElement(codeGhPre);
+
+        } catch (error) {
+            console.error("Error fetching code content:", error);
+            codeMhsPre.textContent = "Gagal memuat kode.";
+            codeGhPre.textContent = "Gagal memuat kode.";
+            alert("Gagal memuat konten kode. Pastikan file ada di server.");
+        }
+    }
+
+    // NEW: Function to display code with line numbers and highlighting
+    function displayAndHighlightCode(codeContent, similarBlocks, preElement) {
+        let highlightedHtml = '';
+        const lines = codeContent.split('\n');
+        
+        lines.forEach((line, index) => {
+            const lineNumber = index + 1;
+            let lineClass = '';
+            
+            // Check if this line falls within any similar block
+            for (const block of similarBlocks) {
+                if (lineNumber >= block.start && lineNumber <= block.end) {
+                    lineClass = 'highlight-code-line';
+                    break;
+                }
+            }
+            
+            // Add line numbers (optional, if you want it)
+            highlightedHtml += `<span class="line-number">${lineNumber}.</span><span class="line-content ${lineClass}">${escapeHtml(line)}</span>\n`;
+        });
+        
+        preElement.innerHTML = highlightedHtml;
+    }
+
+    // Helper to escape HTML for security when setting innerHTML
+    function escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+    }
+
+    // NEW: Function to close modal
+    function closeModal() {
+        codeCompareModal.style.display = 'none';
+        // Clear code content when closing
+        codeMhsPre.innerHTML = ''; // Changed from textContent to innerHTML for hljs
+        codeGhPre.innerHTML = ''; // Changed from textContent to innerHTML for hljs
+    }
+
+    // === Event Listeners === (NO CONFIRMATION PROMPT)
+
+    // Add event listener for the close button
+    closeButton.addEventListener('click', closeModal);
+
+    // Also close modal if user clicks outside of modal content
+    window.addEventListener('click', (event) => {
+        if (event.target == codeCompareModal) {
+            closeModal();
+        }
+    });
 
     // addStudentRepoUrlButton - NO CHANGES
     addStudentRepoUrlButton.addEventListener('click', () => {
@@ -154,7 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Handle Run Analysis Button click (UPDATED displayResults CALL)
+    // Handle Run Analysis Button click (UPDATED to store full results)
     runAnalysisButton.addEventListener('click', async () => {
         if (studentRepoUrls.length === 0) {
             alert('Mohon tambahkan setidaknya satu URL repositori mahasiswa.');
@@ -165,7 +293,6 @@ document.addEventListener('DOMContentLoaded', () => {
         resultsSection.classList.add('hidden');
         noResultsDiv.classList.add('hidden');
         mhVsGhResultsTableBody.innerHTML = '';
-        // REMOVED: mhVsMhResultsTableBody.innerHTML = '';
 
         try {
             const formData = new FormData();
@@ -185,7 +312,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const data = await response.json();
 
-            displayResults(data.mh_vs_gh_results); // ONLY PASS ONE PARAMETER
+            displayResults(data.mh_vs_gh_results); // This now internally saves results
         } catch (error) {
             console.error('Error during analysis:', error);
             alert(`Terjadi kesalahan saat analisis: ${error.message}`);
@@ -194,11 +321,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Clear Buttons Logic - NO CHANGES
+    // Clear Buttons Logic - REMOVED CONFIRMATION
     clearStudentFilesBtn.addEventListener('click', async () => {
-        if (!confirm('Apakah Anda yakin ingin menghapus SEMUA file mahasiswa yang diunduh ke server? Ini tidak menghapus repositori GitHub asli.')) {
-            return;
-        }
+        // Confirmation prompt removed
         try {
             const response = await fetch('/clear_mahasiswa_files', { method: 'POST' });
             if (!response.ok) {
@@ -216,9 +341,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     clearGithubFilesBtn.addEventListener('click', async () => {
-        if (!confirm('Apakah Anda yakin ingin menghapus SEMUA file GitHub yang diunduh ke server? Ini tidak menghapus repositori GitHub asli.')) {
-            return;
-        }
+        // Confirmation prompt removed
         try {
             const response = await fetch('/clear_github_files', { method: 'POST' });
             if (!response.ok) {
@@ -235,7 +358,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Initial UI updates - NO CHANGES
+    // Initial UI updates
     updateStudentRepoList();
     updateGithubUrlList();
 });

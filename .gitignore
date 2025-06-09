@@ -1,0 +1,15 @@
+# Ignore downloaded student code files
+data/mahasiswa/
+
+# Ignore downloaded GitHub comparison files
+data/github/
+
+# Ignore Python virtual environment directory
+.venv/
+
+# Ignore any Python cache files
+__pycache__/
+*.pyc
+
+# Ignore Flask specific files
+.flaskenv

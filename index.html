@@ -3,8 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Code Turnitin Plagiarism Checker</title>
+    <title>Code Turnitin Plagiarisme Checker</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -47,14 +51,31 @@
                         <th>File Mahasiswa</th>
                         <th>File GitHub</th>
                         <th>Kemiripan (%)</th>
-                    </tr>
+                        <th>Aksi</th> </tr>
                 </thead>
                 <tbody>
                     </tbody>
             </table>
-
             <div id="noResults" class="hidden">Tidak ada kemiripan yang signifikan ditemukan.</div>
         </section>
+    </div>
+
+    <div id="codeCompareModal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeModal()">&times;</span>
+            <h2>Detail Kemiripan Kode</h2>
+            <p>Membandingkan: <span id="modal-filename-mhs"></span> vs <span id="modal-filename-gh"></span></p>
+            <div class="code-display-container">
+                <div class="code-pane">
+                    <h3>Kode Mahasiswa</h3>
+                    <pre><code id="code-mhs" class="language-js hljs"></code></pre>
+                </div>
+                <div class="code-pane">
+                    <h3>Kode GitHub</h3>
+                    <pre><code id="code-gh" class="language-js hljs"></code></pre>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="app.js"></script>

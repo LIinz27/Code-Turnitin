@@ -2,15 +2,15 @@ import os
 import json
 from flask import Flask, request, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
-import atexit
+# import atexit # Hapus baris ini
 
 # Import fungsi dari skrip Anda
 from github_scraper import parse_github_blob_url_to_raw, download_raw_code, scrape_repo_files
-from similarity_checker import preprocess_code, compare_code_moss_like # UBAH IMPORT DI SINI
+from similarity_checker import preprocess_code, get_similar_blocks
 
 app = Flask(__name__)
 
-# Konfigurasi direktori unggahan (NO CHANGES)
+# Konfigurasi direktori unggahan
 UPLOAD_FOLDER_MAHASISWA = 'data/mahasiswa'
 UPLOAD_FOLDER_GITHUB = 'data/github'
 
@@ -20,7 +20,7 @@ app.config['UPLOAD_FOLDER_GITHUB'] = UPLOAD_FOLDER_GITHUB
 os.makedirs(UPLOAD_FOLDER_MAHASISWA, exist_ok=True)
 os.makedirs(UPLOAD_FOLDER_GITHUB, exist_ok=True)
 
-# Helper functions (clear_student_files, clear_github_files, index, serve_static, clear_mahasiswa_files_endpoint, clear_github_files_endpoint - NO CHANGES)
+# Helper functions (clear_student_files, clear_github_files, etc. - NO CHANGES)
 def clear_student_files():
     print(f"Membersihkan folder: {app.config['UPLOAD_FOLDER_MAHASISWA']}")
     count = 0
@@ -75,8 +75,39 @@ def clear_github_files_endpoint():
         print(f"Error di endpoint /clear_github_files: {e}")
         return jsonify({"error": "Gagal menghapus file GitHub.", "details": str(e)}), 500
 
+# Endpoint: Untuk mengambil konten file kode asli (NO CHANGES)
+@app.route('/get_code_content', methods=['POST'])
+def get_code_content():
+    data = request.get_json()
+    filename = data.get('filename')
+    file_type = data.get('file_type') # 'mahasiswa' atau 'github'
 
-# Endpoint untuk menjalankan analisis (UBAH BAGIAN PERBANDINGAN)
+    if not filename or not file_type:
+        return jsonify({"error": "Filename and file_type are required."}), 400
+
+    base_dir = ""
+    if file_type == 'mahasiswa':
+        base_dir = app.config['UPLOAD_FOLDER_MAHASISWA']
+    elif file_type == 'github':
+        base_dir = app.config['UPLOAD_FOLDER_GITHUB']
+    else:
+        return jsonify({"error": "Invalid file_type."}), 400
+
+    file_path = os.path.join(base_dir, filename)
+
+    if not os.path.exists(file_path):
+        return jsonify({"error": "File not found."}), 404
+    
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        return jsonify({"content": content}), 200
+    except Exception as e:
+        print(f"Error reading file {file_path}: {e}")
+        return jsonify({"error": f"Could not read file content: {str(e)}"}), 500
+
+
+# Endpoint untuk menjalankan analisis (NO CHANGES)
 @app.route('/analyze_code', methods=['POST'])
 def analyze_code():
     print("\n--- Memulai Analisis ---")
@@ -138,26 +169,24 @@ def analyze_code():
     mahasiswa_dir = app.config['UPLOAD_FOLDER_MAHASISWA']
     github_dir = app.config['UPLOAD_FOLDER_GITHUB']
 
-    # --- BAGIAN PERBANDINGAN YANG DIUBAH ---
-    # Load all student code paths
     mahasiswa_file_paths = [os.path.join(mahasiswa_dir, f) for f in uploaded_student_files if os.path.isfile(os.path.join(mahasiswa_dir, f))]
-
-    # Load all github code paths
     github_file_paths = [os.path.join(github_dir, f) for f in scraped_github_files if os.path.isfile(os.path.join(github_dir, f))]
 
     print("\nMemulai perbandingan menggunakan MOSS-like...")
 
-    if github_file_paths: # Hanya bandingkan jika ada file GitHub
+    if github_file_paths:
         for m_path in mahasiswa_file_paths:
             m_filename = os.path.basename(m_path)
             for g_path in github_file_paths:
                 g_filename = os.path.basename(g_path)
-                # Panggil fungsi perbandingan MOSS-like yang baru
-                score = compare_code_moss_like(m_path, g_path, k=5, w=10) # Sesuaikan k dan w jika perlu
+                score, blocks_mhs, blocks_gh = get_similar_blocks(m_path, g_path, k=5, w=10) # Sesuaikan k dan w jika perlu
+                
                 results_mh_vs_gh.append({
                     "source_file": m_filename,
                     "compared_file": g_filename,
-                    "score": round(score * 100, 2)
+                    "score": round(score * 100, 2),
+                    "similar_blocks_mhs": blocks_mhs, 
+                    "similar_blocks_gh": blocks_gh    
                 })
         print(f"Perbandingan Mahasiswa vs GitHub selesai. Total: {len(results_mh_vs_gh)} pasangan.")
     else:
@@ -168,25 +197,25 @@ def analyze_code():
         "mh_vs_gh_results": results_mh_vs_gh,
     })
 
-# --- FUNGSI UNTUK PEMBERSIHAN SAAT SHUTDOWN (DENGAN PILIHAN) - NO CHANGES ---
-def cleanup_on_shutdown_with_choice():
-    print("\n-------------------------------------------------")
-    print("Aplikasi Flask dimatikan.")
-    print("Apakah Anda ingin menghapus semua file repositori yang telah diunduh (data/mahasiswa dan data/github)?")
-    
-    choice = input("Ketik 'ya' untuk menghapus, atau 'tidak' untuk mempertahankan: ").lower().strip()
-
-    if choice == 'ya':
-        print("Melakukan pembersihan data...")
-        clear_student_files()
-        clear_github_files()
-        print("Pembersihan data selesai.")
-    else:
-        print("File repositori dipertahankan.")
-    print("-------------------------------------------------")
-
-if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
-    atexit.register(cleanup_on_shutdown_with_choice)
+# --- Hapus fungsi pembersihan saat shutdown ---
+# def cleanup_on_shutdown_with_choice():
+#     print("\n-------------------------------------------------")
+#     print("Aplikasi Flask dimatikan.")
+#     print("Apakah Anda ingin menghapus semua file repositori yang telah diunduh (data/mahasiswa dan data/github)?")
+#     
+#     choice = input("Ketik 'ya' untuk menghapus, atau 'tidak' untuk mempertahankan: ").lower().strip()
+# 
+#     if choice == 'ya':
+#         print("Melakukan pembersihan data...")
+#         clear_student_files()
+#         clear_github_files()
+#         print("Pembersihan data selesai.")
+#     else:
+#         print("File repositori dipertahankan.")
+#     print("-------------------------------------------------")
+# 
+# if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+#     atexit.register(cleanup_on_shutdown_with_choice)
 
 
 if __name__ == '__main__':
