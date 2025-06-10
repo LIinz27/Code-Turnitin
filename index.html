@@ -1,129 +1,96 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pemeriksa Plagiarisme Kode</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
-    </head>
-<body class="font-sans bg-gradient-to-br from-indigo-50 to-purple-100 min-h-screen flex items-start justify-center py-8">
-    <div class="container bg-white rounded-3xl shadow-2xl p-6 sm:p-10 max-w-5xl w-full mx-4">
-        <h1 class="text-4xl font-extrabold text-gray-900 text-center mb-10 tracking-tight leading-tight">
-            Sistem Deteksi Plagiarisme Kode
-        </h1>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Code Turnitin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+</head>
+<body class="bg-white text-gray-800 min-h-screen flex flex-col items-center py-10">
+  <main class="w-full max-w-5xl px-4">
+    <header class="mb-10 text-center">
+      <h1 class="text-3xl font-bold">Sistem Deteksi Plagiarisme Kode</h1>
+      <p class="text-gray-500 mt-2">Bandingkan repositori mahasiswa dengan referensi GitHub</p>
+    </header>
 
-        <section id="student-repo-section" class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 mb-8 shadow-md">
-            <h2 class="text-2xl font-bold text-blue-800 mb-5 border-b-2 border-blue-300 pb-3">
-                1. Repositori Mahasiswa
-            </h2>
-            <div class="flex flex-col sm:flex-row gap-4 mb-4">
-                <input type="text" id="studentRepoUrlInput" placeholder="Contoh: https://github.com/user/repo-mahasiswa-tugas"
-                       class="flex-grow p-3 border border-gray-300 rounded-lg text-gray-700 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition duration-200 shadow-sm">
-                <button id="addStudentRepoUrl"
-                        class="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-200 transform hover:scale-105 shadow-md">
-                    Tambah URL
-                </button>
-            </div>
-            <div id="studentRepoUrlList" class="bg-white border border-gray-200 rounded-lg p-3 max-h-48 overflow-y-auto text-gray-700 text-sm shadow-inner">
-                <p class="text-gray-500 italic">Belum ada URL repositori mahasiswa ditambahkan.</p>
-            </div>
-            <button id="clearStudentFilesBtn"
-                    class="mt-5 w-full px-6 py-3 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 transition duration-200 transform hover:scale-105 shadow-md hidden">
-                Hapus Semua File Mahasiswa (dari server)
-            </button>
-            <p class="text-sm text-gray-600 mt-3 text-center">
-                Tambahkan URL repositori GitHub mahasiswa yang ingin diperiksa. Sistem akan mengunduh semua file kode yang relevan.
-            </p>
-        </section>
-
-        <section id="github-url-section" class="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-6 mb-8 shadow-md">
-            <h2 class="text-2xl font-bold text-purple-800 mb-5 border-b-2 border-purple-300 pb-3">
-                2. Repositori Pembanding GitHub
-            </h2>
-            <div class="flex flex-col sm:flex-row gap-4 mb-4">
-                <input type="text" id="githubUrlInput" placeholder="Contoh: https://github.com/popular-framework/library-repo"
-                       class="flex-grow p-3 border border-gray-300 rounded-lg text-gray-700 focus:ring-2 focus:ring-purple-400 focus:border-transparent transition duration-200 shadow-sm">
-                <button id="addGithubUrl"
-                        class="px-8 py-3 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition duration-200 transform hover:scale-105 shadow-md">
-                    Tambah URL
-                </button>
-            </div>
-            <div id="githubUrlList" class="bg-white border border-gray-200 rounded-lg p-3 max-h-48 overflow-y-auto text-gray-700 text-sm shadow-inner">
-                <p class="text-gray-500 italic">Belum ada URL repositori pembanding ditambahkan.</p>
-            </div>
-            <button id="clearGithubFilesBtn"
-                    class="mt-5 w-full px-6 py-3 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 transition duration-200 transform hover:scale-105 shadow-md hidden">
-                Hapus Semua File GitHub (dari server)
-            </button>
-            <p class="text-sm text-gray-600 mt-3 text-center">
-                Tambahkan URL repositori GitHub yang ingin dijadikan pembanding.
-            </p>
-        </section>
-
-        <section id="action-section" class="text-center mb-10 p-6 rounded-xl bg-gray-50 border border-gray-200 shadow-md">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 border-gray-300 pb-3">
-                3. Jalankan Analisis
-            </h2>
-            <button id="runAnalysisButton"
-                    class="px-10 py-5 bg-gradient-to-r from-emerald-500 to-lime-600 text-white font-extrabold text-xl rounded-full shadow-lg hover:from-emerald-600 hover:to-lime-700 focus:outline-none focus:ring-4 focus:ring-emerald-400 focus:ring-opacity-75 transition duration-300 transform hover:scale-105">
-                Mulai Deteksi Kemiripan
-            </button>
-            <div id="loadingIndicator" class="hidden mt-6 text-gray-600 font-semibold text-lg animate-pulse">
-                Analisis sedang berjalan... Mohon tunggu...
-            </div>
-        </section>
-
-        <section id="results-section" class="hidden bg-gray-50 border border-gray-200 rounded-xl p-6 shadow-md">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 border-gray-300 pb-3">
-                4. Hasil Deteksi Kemiripan
-            </h2>
-            <h3 class="text-xl font-semibold text-gray-800 mb-4">
-                Mahasiswa vs GitHub
-            </h3>
-            <div class="overflow-x-auto rounded-lg shadow-inner border border-gray-200">
-                <table id="mhVsGhResults" class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-100">
-                        <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tl-lg">File Mahasiswa</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">File GitHub</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kemiripan (%)</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tr-lg">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        </tbody>
-                </table>
-            </div>
-            <div id="noResults" class="hidden mt-6 p-4 bg-blue-100 border border-blue-200 text-blue-800 rounded-lg text-center font-medium">
-                Tidak ada kemiripan yang signifikan ditemukan.
-            </div>
-        </section>
-    </div>
-
-    <div id="codeCompareModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50 opacity-0 transition-opacity duration-300 ease-out pointer-events-none">
-        <div class="modal-content bg-white rounded-2xl shadow-2xl p-6 w-full max-w-7xl relative transform scale-95 opacity-0 transition-all duration-300 ease-out">
-            <button class="close-button absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-4xl font-light leading-none focus:outline-none transition duration-200 transform hover:rotate-90">&times;</button>
-            <h2 class="text-3xl font-bold text-gray-800 mb-5 border-b-2 border-gray-300 pb-3">Detail Kemiripan Kode</h2>
-            <p class="text-gray-600 mb-6 text-sm">Membandingkan: <span id="modal-filename-mhs" class="font-bold text-blue-700"></span> vs <span id="modal-filename-gh" class="font-bold text-purple-700"></span></p>
-            
-            <div class="flex flex-col lg:flex-row gap-6 w-full h-[70vh]">
-                <div class="code-pane flex-1 border border-gray-300 rounded-lg overflow-hidden flex flex-col shadow-lg max-h-full"> 
-                    <h3 class="text-lg font-bold text-blue-700 bg-blue-100 p-3 text-center border-b border-blue-200">Kode Mahasiswa</h3>
-                    <pre class="flex-1 overflow-auto p-4 text-sm bg-gray-800 text-gray-200 rounded-b-lg scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-700"><code id="code-mhs" class="language-js hljs"></code></pre>
-                </div>
-                <div class="code-pane flex-1 border border-gray-300 rounded-lg overflow-hidden flex flex-col shadow-lg max-h-full">
-                    <h3 class="text-lg font-bold text-purple-700 bg-purple-100 p-3 text-center border-b border-purple-200">Kode GitHub</h3>
-                    <pre class="flex-1 overflow-auto p-4 text-sm bg-gray-800 text-gray-200 rounded-b-lg scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-700"><code id="code-gh" class="language-js hljs"></code></pre>
-                </div>
-            </div>
+    <!-- Form Input Repositori -->
+    <section class="space-y-6">
+      <div>
+        <label class="block font-semibold mb-1" for="studentRepoUrlInput">URL Repositori Mahasiswa</label>
+        <div class="flex gap-2">
+          <input id="studentRepoUrlInput" type="text" placeholder="https://github.com/user/project" class="flex-1 p-2 rounded border bg-gray-50" />
+          <button id="addStudentRepoUrl" class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">Tambah</button>
         </div>
+        <div id="studentRepoUrlList" class="mt-2 text-sm text-gray-600 italic">Belum ada URL ditambahkan</div>
+      </div>
+
+      <div>
+        <label class="block font-semibold mb-1" for="githubUrlInput">URL Repositori GitHub Pembanding</label>
+        <div class="flex gap-2">
+          <input id="githubUrlInput" type="text" placeholder="https://github.com/framework/lib" class="flex-1 p-2 rounded border bg-gray-50" />
+          <button id="addGithubUrl" class="px-4 py-2 rounded bg-purple-600 text-white hover:bg-purple-700">Tambah</button>
+        </div>
+        <div id="githubUrlList" class="mt-2 text-sm text-gray-600 italic">Belum ada URL ditambahkan</div>
+      </div>
+    </section>
+
+    <!-- Tombol Analisis -->
+    <div class="my-8 text-center">
+      <button id="runAnalysisButton" class="px-6 py-3 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-lg font-semibold">Mulai Analisis</button>
+      <div id="loadingIndicator" class="mt-4 text-sm hidden animate-pulse">Memproses analisis...</div>
     </div>
 
-    <script src="app.js"></script>
+    <!-- Hasil -->
+    <section id="results-section" class="hidden border rounded-lg p-4">
+      <h2 class="text-xl font-bold mb-4">Hasil Deteksi Kemiripan</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left border-collapse">
+          <thead class="bg-gray-100 text-gray-700">
+            <tr>
+              <th class="p-3">File Mahasiswa</th>
+              <th class="p-3">File GitHub</th>
+              <th class="p-3">Kemiripan (%)</th>
+              <th class="p-3">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="mhVsGhResults" class="divide-y divide-gray-200">
+          </tbody>
+        </table>
+        <div id="noResults" class="hidden text-center text-gray-500 py-4 italic">Tidak ada kemiripan yang signifikan ditemukan.</div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal Perbandingan Kode -->
+  <div id="codeCompareModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50 hidden">
+    <div class="modal-content bg-white rounded-2xl shadow-2xl p-6 w-full max-w-7xl overflow-auto max-h-[90vh] relative">
+      <button class="close-button absolute top-4 right-4 text-gray-400 hover:text-black text-4xl font-light leading-none focus:outline-none transition duration-200 transform hover:rotate-90">&times;</button>
+      <h2 class="text-3xl font-bold text-gray-900 mb-4 border-b border-gray-300 pb-2">Detail Kemiripan Kode</h2>
+      <p class="text-sm text-gray-600 mb-6">
+        Membandingkan: <span id="modal-filename-mhs" class="font-bold text-blue-700"></span> vs 
+        <span id="modal-filename-gh" class="font-bold text-purple-700"></span>
+      </p>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 h-[65vh]">
+        <div class="code-pane border border-gray-300 rounded-lg flex flex-col overflow-hidden shadow-md">
+          <h3 class="text-md font-semibold text-blue-800 bg-blue-100 text-center py-2 border-b border-blue-300">Kode Mahasiswa</h3>
+          <pre class="flex-1 overflow-auto p-4 text-sm bg-gray-800 text-gray-200 rounded-b-lg scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-700">
+<code id="code-mhs" class="language-js hljs"></code>
+          </pre>
+        </div>
+        <div class="code-pane border border-gray-300 rounded-lg flex flex-col overflow-hidden shadow-md">
+          <h3 class="text-md font-semibold text-purple-800 bg-purple-100 text-center py-2 border-b border-purple-300">Kode GitHub</h3>
+          <pre class="flex-1 overflow-auto p-4 text-sm bg-gray-800 text-gray-200 rounded-b-lg scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-700">
+<code id="code-gh" class="language-js hljs"></code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
 </body>
 </html>
