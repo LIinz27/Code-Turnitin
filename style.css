@@ -1,266 +1,132 @@
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #f4f7f6;
-    color: #333;
-    margin: 0;
-    padding: 20px;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    min-height: 100vh;
+/* Minimal custom CSS. Most styling is done via Tailwind classes in index.html */
+
+/* Custom scrollbar for webkit browsers (Chrome, Safari) */
+/* This ensures the code panes have a scrollbar that is visually consistent */
+.scrollbar-thin::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
 }
 
-.container {
-    background-color: #fff;
-    padding: 30px;
-    border-radius: 12px;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-    max-width: 900px;
-    width: 100%;
-    box-sizing: border-box;
+.scrollbar-thin::-webkit-scrollbar-track {
+    background: #4a5568; /* Tailwind gray-700-ish */
+    border-radius: 10px;
 }
 
-h1 {
-    text-align: center;
-    color: #007bff;
-    margin-bottom: 30px;
-    font-size: 2.2em;
+.scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: #6b7280; /* Tailwind gray-600-ish */
+    border-radius: 10px;
+    border: 2px solid #4a5568;
 }
 
-h2 {
-    color: #007bff;
-    border-bottom: 2px solid #e0e0e0;
-    padding-bottom: 10px;
-    margin-top: 30px;
-    margin-bottom: 20px;
-}
-
-h3 {
-    color: #3498db;
-    margin-top: 25px;
-    margin-bottom: 15px;
-}
-
-section {
-    margin-bottom: 40px;
-}
-
-.file-upload-area {
-    border: 2px dashed #a0a0a0;
-    padding: 25px;
-    text-align: center;
-    border-radius: 8px;
-    background-color: #f9f9f9;
-}
-
-.upload-button {
-    background-color: #28a745;
-    color: white;
-    padding: 12px 25px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 1.1em;
-    transition: background-color 0.3s ease;
-    display: inline-block;
-    margin-bottom: 15px;
-}
-
-.upload-button:hover {
-    background-color: #218838;
-}
-
-.clear-button {
-    background-color: #f0ad4e; /* Warna oranye/peringatan */
-    color: white;
-    padding: 8px 15px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.95em;
-    transition: background-color 0.3s ease;
-    margin-top: 15px; /* Memberi sedikit jarak dari daftar file */
-    display: block; /* Menjadikan tombol satu baris penuh */
-    width: 100%;
-    box-sizing: border-box;
-}
-
-.clear-button:hover {
-    background-color: #ec971f;
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: #9ca3af; /* Tailwind gray-400-ish */
 }
 
 
-#fileList, #githubUrlList,#studentRepoUrlList {
-    margin-top: 15px;
-    background-color: #e9ecef;
-    padding: 10px;
-    border-radius: 6px;
-    max-height: 150px;
-    overflow-y: auto;
-    border: 1px solid #ced4da;
+/* Highlight.js Line Numbers and Custom Highlight Overlay */
+/* Ensure these styles are explicit to work with Highlight.js output */
+
+.code-pane pre code {
+    /* Use display: block to enable counter-reset and full line background */
+    display: block; 
+    padding: 0 !important; /* Override default hljs padding */
 }
 
-#fileList p, #githubUrlList p,#studentRepoUrlList p {
-    margin: 5px 0;
-    padding: 5px 10px;
-    background-color: #f8f9fa;
-    border-radius: 4px;
-    border: 1px solid #dee2e6;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+.code-pane pre code > span { /* Targeting individual lines within <pre><code> */
+    display: flex; /* Use flex to align line number and code content */
+    align-items: flex-start; /* Align content to the top of the line */
+    padding: 0.25rem 0.5rem; /* Padding for each line */
+    min-height: 1.4em; /* Ensure consistent line height */
 }
 
-.remove-file-btn {
-    background-color: #dc3545;
-    color: white;
-    border: none;
-    padding: 4px 8px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.8em;
-    margin-left: 10px;
+.code-pane pre code > span.line-number {
+    flex-shrink: 0; /* Don't shrink line numbers */
+    width: 3.5em; /* Fixed width for line numbers */
+    text-align: right;
+    color: #9ca3af; /* Light gray for line numbers */
+    margin-right: 1rem;
+    user-select: none; /* Prevent text selection on line numbers */
+    -webkit-user-select: none;
+    font-weight: normal;
+    background-color: #374151; /* Darker background for line numbers */
+    padding-right: 0.5rem;
+    border-right: 1px solid #4b5563; /* Separator for line numbers */
 }
 
-.remove-file-btn:hover {
-    background-color: #c82333;
+.code-pane pre code > span.line-content {
+    flex-grow: 1; /* Allow code content to fill remaining space */
+    white-space: pre-wrap; /* Ensure text wraps */
+    word-break: break-all; /* Break long words */
 }
 
-
-.github-url-input-group {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 15px;
+.code-pane pre code > span.line-content.highlight-code-line {
+    background-color: #fbbf24 !important; /* Brighter yellow (Tailwind yellow-400) */
+    color: #1f2937 !important; /* Darker text for contrast on highlight */
+    font-weight: 600; /* Make highlighted text bold */
 }
 
-#githubUrlInput,
-#studentRepoUrlInput {
-    flex-grow: 1;
-    padding: 10px 15px;
-    border: 1px solid #ced4da;
-    border-radius: 6px;
-    font-size: 1em;
+/* Ensure highlight.js default classes don't interfere with our line numbering */
+.code-pane pre code .hljs-ln-numbers,
+.code-pane pre code .hljs-ln-line {
+    background-color: transparent !important;
+    color: inherit !important;
+    border: none !important;
 }
 
-#addGithubUrl,
-#addStudentRepoUrl {
-    background-color: #007bff;
-    color: white;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 1em;
-    transition: background-color 0.3s ease;
-}
-
-#addGithubUrl:hover,
-#addStudentRepoUrl:hover {
-    background-color: #0056b3;
-}
-
-#runAnalysisButton {
-    background-color: #ffc107;
-    color: #333;
-    padding: 15px 30px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 1.2em;
-    font-weight: bold;
-    transition: background-color 0.3s ease;
-    display: block;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-#runAnalysisButton:hover {
-    background-color: #e0a800;
-}
-
-#loadingIndicator {
-    text-align: center;
-    margin-top: 20px;
-    font-style: italic;
-    color: #6c757d;
-}
-
-/* Table Styling */
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-    background-color: #fff;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-}
-
-th, td {
-    border: 1px solid #e0e0e0;
-    padding: 12px 15px;
-    text-align: left;
-}
-
-th {
-    background-color: #f2f2f2;
-    color: #555;
-    font-weight: bold;
-    text-transform: uppercase;
-    font-size: 0.9em;
-}
-
-tr:nth-child(even) {
-    background-color: #f9f9f9;
-}
-
-tr:hover {
-    background-color: #e9f5ff;
-}
-
-.high-similarity {
-    background-color: #fff3cd; /* Warna kuning untuk kemiripan tinggi */
-}
-.high-similarity td {
-    color: #856404;
-}
-
-.info-text {
-    font-size: 0.9em;
-    color: #6c757d;
-    margin-top: 10px;
-    text-align: center;
-}
-
-/* Utility classes */
-.hidden {
-    display: none;
-}
-
+/* Modal Styles - Crucial for proper display and hiding */
 .modal {
-    display: none; /* Hidden by default */
-    position: fixed; /* Stay in place */
-    z-index: 1000; /* Sit on top */
+    /* Base display: none; will come from Tailwind's 'hidden' class */
+    /* Added hidden class back to index.html to control initial display */
+    /* When JS removes 'hidden', it becomes 'flex' and then transitions opacity/visibility */
+    /* pointer-events handled by JS for precise control */
+    display: none; /* Initial state, will be overridden by JS */
+    position: fixed;
+    z-index: 1000;
     left: 0;
     top: 0;
-    width: 100%; /* Full width */
-    height: 100%; /* Full height */
-    overflow: auto; /* Enable scroll if needed */
-    background-color: rgba(0,0,0,0.6); /* Black w/ opacity */
-    padding-top: 60px;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.6);
+    padding: 20px;
+    align-items: center;
+    justify-content: center;
+    
+    /* These transitions are triggered by adding/removing 'show' class */
+    opacity: 0; 
+    visibility: hidden;
+    pointer-events: none; /* Prevents clicks when hidden/fading out */
+    transition: opacity 0.3s ease-out, visibility 0.3s ease-out;
+}
+
+.modal.show {
+    /* This makes the modal visible and correctly laid out */
+    display: flex; /* Overrides display:none from base .modal */
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto; /* Allows clicks when visible */
 }
 
 .modal-content {
     background-color: #fefefe;
-    margin: 5% auto; /* 5% from the top and centered */
+    margin: auto;
     padding: 20px;
     border: 1px solid #888;
-    width: 90%; /* Could be more or less, depending on screen size */
+    width: 90%;
     max-width: 1200px;
     border-radius: 10px;
     position: relative;
     box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);
+    transform: scale(0.95); /* Start slightly smaller for transition effect */
+    opacity: 0; /* Initially hidden even if display:flex for transition */
+    transition: transform 0.3s ease-out, opacity 0.3s ease-out;
 }
+
+.modal.show .modal-content {
+    transform: scale(1); /* Scale to normal size when shown */
+    opacity: 1;
+}
+
 
 .close-button {
     color: #aaa;
@@ -278,56 +144,44 @@ tr:hover {
 
 .code-display-container {
     display: flex;
+    flex-direction: column; /* Default to column for small screens */
     gap: 15px;
     margin-top: 20px;
+    height: calc(100% - 150px); /* Adjust height to allow modal content to scroll if needed */
 }
+
+@media (min-width: 768px) { /* On medium screens and up, make it row */
+    .code-display-container {
+        flex-direction: row;
+    }
+}
+
 
 .code-pane {
     flex: 1; /* Each pane takes equal width */
     border: 1px solid #ddd;
     border-radius: 5px;
-    overflow-y: auto; /* Enable scrolling for code */
-    max-height: 70vh; /* Max height for code view */
+    overflow: hidden; /* Prevent content from spilling */
+    display: flex; /* Use flexbox to make pre fill remaining space */
+    flex-direction: column; /* Stack h3 and pre */
+    max-height: 100%; /* Ensure code-pane fits within container */
     background-color: #f9f9f9;
 }
 
 .code-pane h3 {
     text-align: center;
-    margin: 10px 0;
+    margin: 0; /* Remove default margin */
+    padding: 10px 0; /* Add padding for title */
     color: #007bff;
 }
 
 .code-pane pre {
+    flex: 1; /* Allow pre to fill remaining vertical space */
     margin: 0;
     padding: 10px;
     font-size: 0.9em;
     line-height: 1.4;
     white-space: pre-wrap; /* Wrap long lines */
     word-break: break-all; /* Break words to prevent overflow */
-}
-
-/* Highlighted code lines */
-.highlight-code-line {
-    background-color: #ffeb3b; /* Warna kuning stabil */
-    display: block; /* Penting untuk warna background mengambil lebar penuh */
-    margin: 0 -10px; /* Offset padding pre */
-    padding: 0 10px; /* Offset padding pre */
-}
-
-/* Optional: Line numbers in pre */
-.code-pane pre code {
-    counter-reset: line;
-}
-.code-pane pre code .line-number {
-    counter-increment: line;
-    display: inline-block;
-    width: 2.5em; /* Lebar untuk nomor baris */
-    text-align: right;
-    color: #999;
-    margin-right: 1em;
-    user-select: none;
-    -webkit-user-select: none;
-}
-.code-pane pre code .line-content {
-    display: inline;
+    overflow-y: auto; /* Enable scrolling for pre content */
 }
