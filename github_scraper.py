@@ -68,14 +68,18 @@ def scrape_repo_files(repo_url, save_dir, allowed_extensions=('.js', '.py', '.ja
 
     headers = {}
     # Anda bisa menambahkan Personal Access Token (PAT) di sini untuk rate limit yang lebih tinggi:
-    # GITHUB_TOKEN = os.getenv('GITHUB_TOKEN') # Pastikan Anda menyetel environment variable ini
-    # if GITHUB_TOKEN:
-    #     headers['Authorization'] = f'token {GITHUB_TOKEN}'
+    GITHUB_TOKEN = os.getenv('GITHUB_TOKEN') # Pastikan Anda menyetel environment variable ini
+    if GITHUB_TOKEN:
+          headers['Authorization'] = f'token {GITHUB_TOKEN}'
 
     print(f"Mengambil daftar file dari {repo_url}...")
     try:
         response = requests.get(api_url, headers=headers, timeout=15)
         response.raise_for_status()
+        # Periksa header rate limit dari GitHub
+        print(f"DEBUG: X-RateLimit-Limit: {response.headers.get('X-RateLimit-Limit')}")
+        print(f"DEBUG: X-RateLimit-Remaining: {response.headers.get('X-RateLimit-Remaining')}")
+        print(f"DEBUG: X-RateLimit-Reset: {response.headers.get('X-RateLimit-Reset')}")
         tree_data = response.json()
     except requests.exceptions.RequestException as e:
         print(f"Gagal mengambil daftar file dari API GitHub {api_url}: {e}")

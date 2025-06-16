@@ -197,13 +197,13 @@ def get_similar_blocks(path_a, path_b, k=5, w=10, lang_keywords=None):
     tokens_with_lines_b, original_lines_b = preprocess_code(path_b, lang_keywords)
 
     if not tokens_with_lines_a or not tokens_with_lines_b:
-        return 0.0, [] # No similarity if either is empty
+        return 0.0, [], [] # No similarity if either is empty
 
     k_grams_info_a = generate_k_grams(tokens_with_lines_a, k)
     k_grams_info_b = generate_k_grams(tokens_with_lines_b, k)
     
     if not k_grams_info_a or not k_grams_info_b:
-        return 0.0, []
+        return 0.0, [], []
 
     # Map hash to (k-gram_tuple, start_line, end_line) for easy lookup after winnowing
     # This also helps to get the original k-gram info back
@@ -261,7 +261,7 @@ def get_similar_blocks(path_a, path_b, k=5, w=10, lang_keywords=None):
     # For MOSS, often it's about what percentage of A is similar to B, and vice-versa.
 
     # Simpler approach: Collect all common k-gram ranges from A and B, then merge them.
-    # The frontend will then highlight these merged ranges.
+    # The frontend will then highlight these merged ranges
     
     final_similar_ranges_a = []
     final_similar_ranges_b = []
