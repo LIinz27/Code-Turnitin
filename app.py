@@ -1,14 +1,39 @@
 import os
 import json
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, render_template
 from werkzeug.utils import secure_filename
-# import atexit # Hapus baris ini
 
-# Import fungsi dari skrip Anda
-from github_scraper import parse_github_blob_url_to_raw, download_raw_code, scrape_repo_files
-from similarity_checker import preprocess_code, get_similar_blocks
+def load_env_file():
+    """
+    Manually load .env file if python-dotenv is not available
+    """
+    env_path = os.path.join(os.path.dirname(__file__), 'config', '.env')
+    if os.path.exists(env_path):
+        with open(env_path, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line and '=' in line and not line.startswith('#'):
+                    key, value = line.split('=', 1)
+                    # Remove quotes if present
+                    value = value.strip('"').strip("'")
+                    os.environ[key] = value
+        print(f"DEBUG: Loaded GITHUB_TOKEN from .env file")
 
-app = Flask(__name__)
+# Try to load from .env file
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    print("DEBUG: python-dotenv not available, using manual .env loading")
+    load_env_file()
+
+# Import functions from reorganized structure
+from src.scrapers.github_scraper import parse_github_blob_url_to_raw, download_raw_code, scrape_repo_files
+from src.algorithms.similarity_checker import preprocess_code, get_similar_blocks
+
+app = Flask(__name__, 
+            template_folder='templates',
+            static_folder='static')
 
 # Konfigurasi direktori unggahan
 UPLOAD_FOLDER_MAHASISWA = 'data/mahasiswa'
@@ -51,11 +76,11 @@ def clear_github_files():
 
 @app.route('/')
 def index():
-    return send_from_directory('.', 'index.html')
+    return render_template('index.html')
 
-@app.route('/<path:filename>')
+@app.route('/static/<path:filename>')
 def serve_static(filename):
-    return send_from_directory('.', filename)
+    return send_from_directory('static', filename)
 
 @app.route('/clear_mahasiswa_files', methods=['POST'])
 def clear_mahasiswa_files_endpoint():

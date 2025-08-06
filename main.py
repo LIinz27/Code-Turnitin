@@ -1,8 +1,8 @@
 # main.py
 
 import os
-from github_scraper import download_raw_code # Akan disesuaikan
-from similarity_checker import preprocess_code, jaccard_similarity # Akan disesuaikan
+from src.scrapers.github_scraper import download_raw_code
+from src.algorithms.similarity_checker import preprocess_code, get_similar_blocks
 
 def run_github_scraper():
     print("Memulai pengunduhan kode dari GitHub...")
@@ -77,7 +77,8 @@ def run_similarity_check():
                 continue
             tokens_g = preprocess_code(g_path)
 
-            score = jaccard_similarity(tokens_m, tokens_g)
+            score, _, _ = get_similar_blocks(m_path, g_path, k=3, w=2)
+            score = score  # score sudah dalam format 0.0-1.0
             results_mh_vs_gh.append({
                 "source_file": m_file,
                 "compared_file": g_file,
@@ -102,7 +103,8 @@ def run_similarity_check():
             tokens1 = preprocess_code(file1_path)
             tokens2 = preprocess_code(file2_path)
 
-            score = jaccard_similarity(tokens1, tokens2)
+            score, _, _ = get_similar_blocks(file1_path, file2_path, k=3, w=2)
+            score = score  # score sudah dalam format 0.0-1.0
             results_mh_vs_mh.append({
                 "source_file": os.path.basename(file1_path),
                 "compared_file": os.path.basename(file2_path),

@@ -11,5 +11,30 @@ data/github/
 __pycache__/
 *.pyc
 
+# Ignore environment files with sensitive data
+.env
+config/.env
+*.env
+
 # Ignore Flask specific files
 .flaskenv
+
+# Ignore IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore temporary and log files
+*.log
+*.tmp
+temp/
+
+# Ignore build and dist directories
+build/
+dist/
+*.egg-info/
