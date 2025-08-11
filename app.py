@@ -19,16 +19,25 @@ def load_env_file():
                     os.environ[key] = value
         print(f"DEBUG: Loaded GITHUB_TOKEN from .env file")
 
-# Try to load from .env file
+# Try to load environment variables
 try:
     from dotenv import load_dotenv
+    # Load root .env if present
     load_dotenv()
+    # Explicitly load config/.env (current project keeps token there)
+    config_env_path = os.path.join(os.path.dirname(__file__), 'config', '.env')
+    if os.path.exists(config_env_path):
+        load_dotenv(dotenv_path=config_env_path, override=True)
+    # Fallback: if still no GITHUB_TOKEN, attempt manual loader
+    if not os.getenv('GITHUB_TOKEN'):
+        load_env_file()
 except ImportError:
     print("DEBUG: python-dotenv not available, using manual .env loading")
     load_env_file()
 
 # Import functions from reorganized structure
 from src.scrapers.github_scraper import parse_github_blob_url_to_raw, download_raw_code, scrape_repo_files
+from src.scrapers.github_search import auto_search_candidate_repos, load_cache
 from src.algorithms.similarity_checker import preprocess_code, get_similar_blocks
 
 app = Flask(__name__, 
@@ -77,6 +86,10 @@ def clear_github_files():
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/auto-search')
+def auto_search_page():
+    return render_template('auto_search.html')
 
 @app.route('/static/<path:filename>')
 def serve_static(filename):
@@ -221,6 +234,72 @@ def analyze_code():
     return jsonify({
         "mh_vs_gh_results": results_mh_vs_gh,
     })
+
+# ---------------- Auto Search Endpoints -----------------
+@app.route('/auto_search/init', methods=['POST'])
+def auto_search_init():
+    data = request.get_json(force=True, silent=True) or {}
+    student_repo_urls = data.get('student_repo_urls') or []
+    if not isinstance(student_repo_urls, list) or not student_repo_urls:
+        return jsonify({'error': 'student_repo_urls harus berupa list dan tidak boleh kosong'}), 400
+
+    clear_student_files()
+    try:
+        cache_id, candidates = auto_search_candidate_repos(student_repo_urls, app.config['UPLOAD_FOLDER_MAHASISWA'], cache_dir='data/cache', top_n=5)
+    except Exception as e:
+        print(f"Error auto_search_candidate_repos: {e}")
+        return jsonify({'error': 'Gagal melakukan pencarian otomatis', 'details': str(e)}), 500
+
+    response_candidates = []
+    for c in candidates:
+        response_candidates.append({
+            'full_name': c['full_name'],
+            'score': c['score'],
+            'matched_tokens': c['matched_tokens'],
+            'files': c['files'],
+            'size_kb': c['size_kb'],
+            'stars': c['stars'],
+            'token_overlap': c.get('token_overlap'),
+            'file_overlap': c.get('file_overlap')
+        })
+    return jsonify({'cache_id': cache_id, 'candidates': response_candidates})
+
+@app.route('/auto_search/confirm', methods=['POST'])
+def auto_search_confirm():
+    data = request.get_json(force=True, silent=True) or {}
+    cache_id = data.get('cache_id')
+    selected_repos = data.get('selected_repos') or []
+    if not cache_id or not selected_repos:
+        return jsonify({'error': 'cache_id dan selected_repos wajib diisi'}), 400
+
+    cache_payload = load_cache(cache_id, 'data/cache')
+    if not cache_payload:
+        return jsonify({'error': 'Cache tidak ditemukan atau kadaluarsa'}), 404
+
+    clear_github_files()
+    for full_name in selected_repos:
+        repo_url = f'https://github.com/{full_name}'
+        print(f"[AUTO] Scraping selected repo: {repo_url}")
+        scrape_repo_files(repo_url, app.config['UPLOAD_FOLDER_GITHUB'])
+
+    results = []
+    mahasiswa_dir = app.config['UPLOAD_FOLDER_MAHASISWA']
+    github_dir = app.config['UPLOAD_FOLDER_GITHUB']
+    mahasiswa_files = [f for f in os.listdir(mahasiswa_dir) if os.path.isfile(os.path.join(mahasiswa_dir, f))]
+    github_files = [f for f in os.listdir(github_dir) if os.path.isfile(os.path.join(github_dir, f))]
+    for m in mahasiswa_files:
+        for g in github_files:
+            m_path = os.path.join(mahasiswa_dir, m)
+            g_path = os.path.join(github_dir, g)
+            score, blocks_m, blocks_g = get_similar_blocks(m_path, g_path, k=5, w=10)
+            results.append({
+                'source_file': m,
+                'compared_file': g,
+                'score': round(score*100,2),
+                'similar_blocks_mhs': blocks_m,
+                'similar_blocks_gh': blocks_g
+            })
+    return jsonify({'mh_vs_auto_results': results})
 
 # --- Hapus fungsi pembersihan saat shutdown ---
 # def cleanup_on_shutdown_with_choice():

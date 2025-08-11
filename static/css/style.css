@@ -29,11 +29,19 @@ pre code span.line-content {
   word-break: break-word;
 }
 pre code span.line-content.highlight-code-line {
-  background-color: #f59e0b;
+  background: linear-gradient(90deg,#fde68a,#fbbf24,#f59e0b);
   color: #1f2937;
   font-weight: 600;
   padding: 0 4px;
+  border-radius: 4px;
 }
+
+/* Variable intensity highlight (future use) */
+pre code span.line-content.highlight-intensity-1 { background: #fef3c7; }
+pre code span.line-content.highlight-intensity-2 { background: #fde68a; }
+pre code span.line-content.highlight-intensity-3 { background: #fcd34d; }
+pre code span.line-content.highlight-intensity-4 { background: #fbbf24; }
+pre code span.line-content.highlight-intensity-5 { background: #f59e0b; color:#1f2937; }
 
 /* Modal animation */
 #codeCompareModal {
