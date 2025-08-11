@@ -361,7 +361,7 @@ def merge_overlapping_segments(segments):
             merged.append(current_merge)
             current_merge = segment
             
-    merged.append(current_merge) # Tambahkan yang terakhir
+    merged.append(current_merge)
     return merged
 
 def get_similar_blocks(path_a, path_b, k=5, w=10, lang_keywords=None):
@@ -417,28 +417,6 @@ def get_similar_blocks(path_a, path_b, k=5, w=10, lang_keywords=None):
     # Merge overlapping segments to get consolidated blocks
     merged_blocks_a = merge_overlapping_segments(segments_a)
     merged_blocks_b = merge_overlapping_segments(segments_b)
-
-    # For simplicity, we assume one-to-one mapping of merged blocks.
-    # A more advanced approach would try to align blocks more accurately.
-    # For initial implementation, we can just return blocks from A and B that are common.
-    # The output format for frontend could be simplified to a list of blocks per file.
-    
-    # For now, let's just return the merged blocks for A and B.
-    # This doesn't directly tell you which block in A maps to which in B,
-    # but tells you *where* similar code exists in each file.
-    
-    # A more practical output would be a list of dicts:
-    # [{'fileA_lines': [start_A, end_A], 'fileB_lines': [start_B, end_B]}]
-    # This mapping is complex to get precisely from Winnowing directly.
-    # For simplicity, let's return common fingerprints as raw data for now,
-    # and Frontend can highlight all lines touched by these common fingerprints.
-    
-    # Let's refine the return value for `get_similar_blocks`
-    # Return a list of {"fileA": [start_line_A, end_line_A], "fileB": [start_line_B, end_line_B]}
-    # For MOSS, often it's about what percentage of A is similar to B, and vice-versa.
-
-    # Simpler approach: Collect all common k-gram ranges from A and B, then merge them.
-    # The frontend will then highlight these merged ranges
     
     final_similar_ranges_a = []
     final_similar_ranges_b = []
