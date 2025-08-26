@@ -38,6 +38,7 @@ except ImportError:
 # Import functions from reorganized structure
 from src.scrapers.github_scraper import parse_github_blob_url_to_raw, download_raw_code, scrape_repo_files
 from src.scrapers.github_search import auto_search_candidate_repos, load_cache
+from src.scrapers.github_classroom import GitHubClassroom
 from src.algorithms.similarity_checker import preprocess_code, get_similar_blocks
 
 app = Flask(__name__, 
@@ -90,6 +91,10 @@ def index():
 @app.route('/auto-search')
 def auto_search_page():
     return render_template('auto_search.html')
+
+@app.route('/classroom')
+def classroom_page():
+    return render_template('classroom.html')
 
 @app.route('/static/<path:filename>')
 def serve_static(filename):
@@ -302,6 +307,164 @@ def auto_search_confirm():
     return jsonify({'mh_vs_auto_results': results})
 
 # --- Hapus fungsi pembersihan saat shutdown ---
+# =============================================================================
+# GitHub Classroom API Endpoints
+# =============================================================================
+
+@app.route('/api/classroom/list', methods=['GET'])
+def api_classroom_list():
+    """API endpoint untuk mendapatkan daftar classroom yang dapat diakses"""
+    try:
+        classroom = GitHubClassroom()
+        classrooms = classroom.get_classrooms()
+        
+        return jsonify({
+            "success": True,
+            "classrooms": classrooms,
+            "count": len(classrooms)
+        })
+        
+    except Exception as e:
+        print(f"Error in /api/classroom/list: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+@app.route('/api/classroom/load', methods=['POST'])
+def api_classroom_load():
+    """API endpoint untuk load classroom berdasarkan URL atau ID"""
+    try:
+        data = request.get_json()
+        classroom_url = data.get('classroom_url', '').strip()
+        
+        if not classroom_url:
+            return jsonify({
+                "success": False,
+                "error": "Classroom URL atau ID tidak boleh kosong"
+            }), 400
+        
+        classroom = GitHubClassroom()
+        
+        # Extract classroom ID dari URL atau gunakan ID langsung
+        classroom_id = classroom.extract_classroom_id(classroom_url)
+        if not classroom_id:
+            return jsonify({
+                "success": False,
+                "error": "Format classroom URL atau ID tidak valid"
+            }), 400
+        
+        # Ambil detail classroom
+        classroom_details = classroom.get_classroom_details(classroom_id)
+        if not classroom_details:
+            return jsonify({
+                "success": False,
+                "error": f"Classroom dengan ID {classroom_id} tidak ditemukan atau tidak dapat diakses"
+            }), 404
+        
+        return jsonify({
+            "success": True,
+            "classroom": classroom_details
+        })
+        
+    except Exception as e:
+        print(f"Error in /api/classroom/load: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+@app.route('/api/classroom/<int:classroom_id>/assignments', methods=['GET'])
+def api_classroom_assignments(classroom_id):
+    """API endpoint untuk mendapatkan daftar assignment dalam classroom"""
+    try:
+        classroom = GitHubClassroom()
+        assignments = classroom.get_classroom_assignments(classroom_id)
+        
+        return jsonify({
+            "success": True,
+            "assignments": assignments,
+            "count": len(assignments)
+        })
+        
+    except Exception as e:
+        print(f"Error in /api/classroom/{classroom_id}/assignments: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+@app.route('/api/classroom/download', methods=['POST'])
+def api_classroom_download():
+    """API endpoint untuk download assignment repositories"""
+    try:
+        data = request.get_json()
+        assignment_id = data.get('assignment_id')
+        
+        if not assignment_id:
+            return jsonify({
+                "success": False,
+                "error": "Assignment ID tidak boleh kosong"
+            }), 400
+        
+        # Setup direktori download
+        save_dir = os.path.join('data', 'classroom')
+        os.makedirs(save_dir, exist_ok=True)
+        
+        classroom = GitHubClassroom()
+        downloaded_files = classroom.download_classroom_assignment_repos(
+            assignment_id, 
+            save_dir
+        )
+        
+        return jsonify({
+            "success": True,
+            "files": downloaded_files,
+            "count": len(downloaded_files),
+            "assignment_id": assignment_id,
+            "save_directory": save_dir
+        })
+        
+    except Exception as e:
+        print(f"Error in /api/classroom/download: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+@app.route('/api/similarity/analyze', methods=['POST'])
+def api_similarity_analyze():
+    """API endpoint untuk menjalankan analisis similarity pada file classroom"""
+    try:
+        data = request.get_json()
+        source = data.get('source', 'classroom')
+        assignment_id = data.get('assignment_id')
+        
+        if source == 'classroom' and not assignment_id:
+            return jsonify({
+                "success": False,
+                "error": "Assignment ID diperlukan untuk analisis classroom"
+            }), 400
+        
+        # Untuk sementara, return success (implementasi analisis bisa ditambahkan nanti)
+        return jsonify({
+            "success": True,
+            "message": "Similarity analysis completed",
+            "assignment_id": assignment_id,
+            "redirect_url": f"/?source=classroom&assignment_id={assignment_id}"
+        })
+        
+    except Exception as e:
+        print(f"Error in /api/similarity/analyze: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+# =============================================================================
+# End of GitHub Classroom API Endpoints
+# =============================================================================
+
 # def cleanup_on_shutdown_with_choice():
 #     print("\n-------------------------------------------------")
 #     print("Aplikasi Flask dimatikan.")

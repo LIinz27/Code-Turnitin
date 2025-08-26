@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Classroom - Code Turnitin</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .classroom-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .classroom-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .classroom-section {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            background: #5a6fd8;
+        }
+
+        .btn-success {
+            background: #28a745;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .classroom-info {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 0 5px 5px 0;
+        }
+
+        .assignment-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            background: #f9f9f9;
+            transition: box-shadow 0.3s;
+        }
+
+        .assignment-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .assignment-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .assignment-meta {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .progress-container {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f1f3f4;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #4caf50;
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .status-message {
+            margin: 15px 0;
+            padding: 12px;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status-info {
+            background: #cce7ff;
+            color: #004085;
+            border: 1px solid #99d6ff;
+        }
+
+        .results-section {
+            margin-top: 30px;
+        }
+
+        .file-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            background: #f9f9f9;
+        }
+
+        .file-item {
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .navigation {
+            margin-bottom: 20px;
+        }
+
+        .navigation a {
+            color: #667eea;
+            text-decoration: none;
+            margin-right: 10px;
+        }
+
+        .navigation a:hover {
+            text-decoration: underline;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(102, 126, 234, .3);
+            border-radius: 50%;
+            border-top-color: #667eea;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .classroom-container {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="classroom-container">
+        <!-- Header -->
+        <div class="classroom-header">
+            <h1>🎓 GitHub Classroom Integration</h1>
+            <p>Analisis otomatis untuk assignment GitHub Classroom</p>
+        </div>
+
+        <!-- Navigation -->
+        <div class="navigation">
+            <a href="/">← Kembali ke Beranda</a>
+            <a href="/auto_search">Auto Search</a>
+        </div>
+
+        <!-- Step 1: Classroom Selection -->
+        <div class="classroom-section">
+            <h2>📚 Step 1: Pilih Classroom</h2>
+            
+            <div class="grid">
+                <div>
+                    <div class="input-group">
+                        <label for="classroom-url">Classroom URL atau ID:</label>
+                        <input type="text" 
+                               id="classroom-url" 
+                               placeholder="https://classroom.github.com/classrooms/12345-programming atau 12345"
+                               title="Masukkan URL lengkap classroom atau ID classroom saja">
+                    </div>
+                    
+                    <button class="btn" onclick="loadClassroom()">
+                        <span id="load-classroom-text">Load Classroom</span>
+                        <span id="load-classroom-loading" class="loading hidden"></span>
+                    </button>
+                    
+                    <button class="btn btn-secondary" onclick="autoDiscoverClassrooms()">
+                        <span id="auto-discover-text">Auto Discover</span>
+                        <span id="auto-discover-loading" class="loading hidden"></span>
+                    </button>
+                </div>
+                
+                <div>
+                    <div class="input-group">
+                        <label for="classroom-select">Atau pilih dari daftar:</label>
+                        <select id="classroom-select" onchange="selectClassroom()">
+                            <option value="">-- Pilih Classroom --</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Classroom Info Display -->
+            <div id="classroom-info" class="classroom-info hidden">
+                <h3 id="classroom-name">Classroom Name</h3>
+                <p id="classroom-description">Description akan muncul di sini</p>
+            </div>
+        </div>
+
+        <!-- Step 2: Assignment Selection -->
+        <div class="classroom-section">
+            <h2>📝 Step 2: Pilih Assignment</h2>
+            
+            <div id="assignments-container">
+                <p class="status-info" style="display: block;">Pilih classroom terlebih dahulu untuk melihat daftar assignment.</p>
+            </div>
+        </div>
+
+        <!-- Step 3: Download & Analysis -->
+        <div class="classroom-section">
+            <h2>⬇️ Step 3: Download & Analisis</h2>
+            
+            <div id="download-controls" class="hidden">
+                <button class="btn btn-success" onclick="downloadAndAnalyze()">
+                    <span id="download-text">Download & Analyze Assignment</span>
+                    <span id="download-loading" class="loading hidden"></span>
+                </button>
+                
+                <button class="btn btn-secondary" onclick="viewAnalysisResults()" id="view-results-btn" style="display: none;">
+                    View Analysis Results
+                </button>
+            </div>
+            
+            <!-- Progress Display -->
+            <div id="progress-container" class="progress-container">
+                <h4>Download Progress</h4>
+                <div class="progress-bar">
+                    <div id="progress-fill" class="progress-fill"></div>
+                </div>
+                <p id="progress-text">Preparing download...</p>
+            </div>
+            
+            <!-- Status Messages -->
+            <div id="status-message" class="status-message"></div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="classroom-section results-section" id="results-section" style="display: none;">
+            <h2>📊 Analysis Results</h2>
+            
+            <div id="analysis-summary">
+                <p>Analysis results akan muncul di sini setelah download selesai.</p>
+            </div>
+            
+            <div class="grid">
+                <div>
+                    <h4>Downloaded Files:</h4>
+                    <div id="downloaded-files" class="file-list">
+                        <p>No files downloaded yet.</p>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4>Quick Actions:</h4>
+                    <button class="btn" onclick="runSimilarityCheck()">Run Similarity Check</button>
+                    <button class="btn btn-secondary" onclick="exportResults()">Export Results</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/classroom.js"></script>
+</body>
+</html>
