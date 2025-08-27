@@ -21,10 +21,32 @@
             .file-list { max-height:280px; overflow-y:auto; font-size:.65rem; display:grid; gap:4px; }
             .file-item { padding:6px 10px; background:rgba(255,255,255,0.25); border:1px solid rgba(255,255,255,0.4); border-radius:8px; }
             body.dark .file-item { background:rgba(30,41,59,0.55); border-color:rgba(255,255,255,0.12); }
-            .navigation a { font-size:.65rem; text-decoration:none; padding:6px 12px; border-radius:10px; background:rgba(255,255,255,0.25); border:1px solid rgba(255,255,255,0.4); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); margin-right:6px; }
-            body.dark .navigation a { background:rgba(30,41,59,0.55); border-color:rgba(255,255,255,0.12); color:#e2e8f0; }
-            .navigation a:hover { background:rgba(255,255,255,0.45); }
-            body.dark .navigation a:hover { background:rgba(51,65,85,0.7); }
+            .navigation a { 
+                font-size:.7rem; 
+                text-decoration:none; 
+                padding:8px 16px; 
+                border-radius:12px; 
+                background:rgba(255,255,255,0.25); 
+                border:1px solid rgba(255,255,255,0.4); 
+                backdrop-filter: blur(12px) saturate(160%); 
+                -webkit-backdrop-filter: blur(12px) saturate(160%); 
+                margin-right:8px; 
+                transition: all 0.3s ease;
+                box-shadow: 0 2px 8px -2px rgba(0,0,0,0.2);
+            }
+            body.dark .navigation a { 
+                background:rgba(30,41,59,0.55); 
+                border-color:rgba(255,255,255,0.12); 
+                color:#e2e8f0; 
+            }
+            .navigation a:hover { 
+                background:rgba(255,255,255,0.45); 
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px -2px rgba(0,0,0,0.3);
+            }
+            body.dark .navigation a:hover { 
+                background:rgba(51,65,85,0.7); 
+            }
             .assignment-title { font-size:1rem; font-weight:600; margin-bottom:6px; }
             .assignment-meta { font-size:.6rem; opacity:.85; margin-bottom:10px; }
         </style>
@@ -32,94 +54,97 @@
 <body class="min-h-screen py-10 text-sm">
     <button id="themeToggle" class="theme-toggle-btn" aria-label="Toggle theme">🌙 Mode</button>
     <div class="max-w-7xl mx-auto px-4 app-shell fade-in">
-        <!-- Header -->
-        <div class="glass p-8 md:p-10 mb-10 text-center interactive-glow rounded-3xl">
-            <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-200 via-white to-cyan-200">🎓 GitHub Classroom Integration</h1>
-            <p class="mt-3 text-indigo-50/80 dark:text-slate-300 text-xs md:text-sm">Analisis otomatis untuk assignment GitHub Classroom</p>
-            <div class="navigation mt-6 flex justify-center flex-wrap gap-2">
-                <a href="/">← Beranda</a>
-                <a href="/auto-search">Auto Search</a>
-            </div>
-        </div>
-
-        <!-- Step 1: Classroom Selection -->
-        <div class="glass p-6 md:p-8 mb-8 rounded-3xl interactive-glow">
-            <h2 class="text-xl md:text-2xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-indigo-200 via-white to-cyan-200">📚 Step 1: Pilih Classroom</h2>
-            
-            <div class="grid">
-                <div>
-                    <div class="mb-5">
-                        <label for="classroom-url" class="block font-semibold mb-2 text-indigo-50/90 dark:text-indigo-200">Classroom URL atau ID:</label>
-                        <input type="text" id="classroom-url" placeholder="https://classroom.github.com/classrooms/12345-programming atau 12345" title="Masukkan URL lengkap classroom atau ID classroom saja" class="glass-input rounded w-full px-4 py-2 text-xs md:text-sm" />
-                    </div>
-                    <div class="flex flex-wrap gap-2">
-                        <button class="g-btn text-[0.6rem] md:text-xs" onclick="loadClassroom()">
-                            <span id="load-classroom-text">Load Classroom</span>
-                            <span id="load-classroom-loading" class="loading hidden"></span>
-                        </button>
-                        <button class="g-btn text-[0.6rem] md:text-xs" style="--accent:var(--gradient-2);" onclick="autoDiscoverClassrooms()">
-                            <span id="auto-discover-text">Auto Discover</span>
-                            <span id="auto-discover-loading" class="loading hidden"></span>
-                        </button>
-                    </div>
+        <!-- Header & Workflow -->
+        <div class="glass p-8 md:p-10 mb-10 rounded-3xl interactive-glow">
+            <!-- Header Section -->
+            <div class="text-center mb-10">
+                <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-200 via-white to-cyan-200">🎓 GitHub Classroom Integration</h1>
+                <p class="mt-3 text-indigo-50/80 dark:text-slate-300 text-xs md:text-sm">Analisis otomatis untuk assignment GitHub Classroom</p>
+                <div class="navigation mt-6 flex justify-center flex-wrap gap-2">
+                    <a href="/">← Beranda</a>
+                    <a href="/auto-search">Auto Search</a>
                 </div>
+            </div>
+
+            <!-- Step 1: Classroom Selection -->
+            <div class="mb-10 pb-8 border-b border-white/20 dark:border-white/10">
+                <h2 class="text-xl md:text-2xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-indigo-200 via-white to-cyan-200">📚 Step 1: Pilih Classroom</h2>
                 
-                <div>
-                    <div class="mb-5">
-                        <label for="classroom-select" class="block font-semibold mb-2 text-indigo-50/90 dark:text-indigo-200">Atau pilih dari daftar:</label>
-                        <select id="classroom-select" onchange="selectClassroom()" class="glass-input rounded w-full px-4 py-2 text-xs md:text-sm">
-                            <option value="">-- Pilih Classroom --</option>
-                        </select>
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div class="space-y-4">
+                        <div>
+                            <label for="classroom-url" class="block font-semibold mb-3 text-indigo-50/90 dark:text-indigo-200">Classroom URL atau ID:</label>
+                            <input type="text" id="classroom-url" placeholder="https://classroom.github.com/classrooms/12345-programming" title="Masukkan URL lengkap classroom atau ID classroom saja" class="glass-input rounded-lg w-full px-4 py-3 text-xs md:text-sm" />
+                        </div>
+                        <div class="flex flex-wrap gap-3 pt-2">
+                            <button class="g-btn text-xs md:text-sm" onclick="loadClassroom()">
+                                <span id="load-classroom-text">Load Classroom</span>
+                                <span id="load-classroom-loading" class="loading hidden"></span>
+                            </button>
+                            <button class="g-btn text-xs md:text-sm" style="background: linear-gradient(135deg, rgba(139,92,246,0.55), rgba(139,92,246,0.25));" onclick="autoDiscoverClassrooms()">
+                                <span id="auto-discover-text">Auto Discover</span>
+                                <span id="auto-discover-loading" class="loading hidden"></span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label for="classroom-select" class="block font-semibold mb-3 text-indigo-50/90 dark:text-indigo-200">Atau pilih dari daftar:</label>
+                            <select id="classroom-select" onchange="selectClassroom()" class="glass-input rounded-lg w-full px-4 py-3 text-xs md:text-sm">
+                                <option value="">-- Pilih Classroom --</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
+
+                <!-- Classroom Info Display -->
+                <div id="classroom-info" class="classroom-info hidden mt-8 p-5 rounded-xl bg-white/10 dark:bg-white/5 border border-white/20 dark:border-white/10 backdrop-filter blur(12px)">
+                    <h3 id="classroom-name">Classroom Name</h3>
+                    <p id="classroom-description">Description akan muncul di sini</p>
+                </div>
             </div>
 
-            <!-- Classroom Info Display -->
-            <div id="classroom-info" class="classroom-info hidden">
-                <h3 id="classroom-name">Classroom Name</h3>
-                <p id="classroom-description">Description akan muncul di sini</p>
+            <!-- Step 2: Assignment Selection -->
+            <div class="mb-10 pb-8 border-b border-white/20 dark:border-white/10">
+                <h2 class="text-xl md:text-2xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-indigo-200 via-white to-cyan-200 flex items-center gap-3">📝 Step 2: Pilih Assignment <span id="assignmentCount" class="chip hidden"></span></h2>
+                <div id="assignments-container" class="space-y-4">
+                    <div id="assignments-placeholder" class="skeleton-grid">
+                        <div class="skeleton-card"></div>
+                        <div class="skeleton-card"></div>
+                        <div class="skeleton-card"></div>
+                        <div class="skeleton-card"></div>
+                    </div>
+                    <p class="status-info" id="assignments-hint" style="display: block;">Pilih classroom terlebih dahulu untuk melihat daftar assignment.</p>
+                </div>
             </div>
-        </div>
 
-        <!-- Step 2: Assignment Selection -->
-        <div class="glass p-6 md:p-8 mb-8 rounded-3xl interactive-glow">
-            <h2 class="text-xl md:text-2xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-indigo-200 via-white to-cyan-200 flex items-center gap-3">📝 Step 2: Pilih Assignment <span id="assignmentCount" class="chip hidden"></span></h2>
-            <div id="assignments-container" class="space-y-4">
-                <div id="assignments-placeholder" class="skeleton-grid">
-                    <div class="skeleton-card"></div>
-                    <div class="skeleton-card"></div>
-                    <div class="skeleton-card"></div>
-                    <div class="skeleton-card"></div>
+            <!-- Step 3: Download & Analysis -->
+            <div class="mb-6">
+                <h2 class="text-xl md:text-2xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-indigo-200 via-white to-cyan-200">⬇️ Step 3: Download & Analisis</h2>
+                
+                <div id="download-controls" class="hidden fade-in-up mb-6">
+                    <div class="flex flex-wrap gap-3 items-center">
+                        <button class="g-btn pick-btn" onclick="downloadAndAnalyze()">
+                            <span id="download-text">Download & Analyze Assignment</span>
+                            <span id="download-loading" class="loading hidden"></span>
+                        </button>
+                        <button class="g-btn" onclick="runSimilarityCheck()" id="quick-sim-btn" style="display:none;">Run Similarity</button>
+                        <button class="g-btn" onclick="viewAnalysisResults()" id="view-results-btn" style="display:none;">View Results</button>
+                    </div>
                 </div>
-                <p class="status-info" id="assignments-hint" style="display: block;">Pilih classroom terlebih dahulu untuk melihat daftar assignment.</p>
+                <div id="progress-shell" class="progress-shell">
+                    <div class="flex items-center justify-between">
+                        <span class="subtext">Progress</span>
+                        <span id="progress-percent" class="progress-percent">0%</span>
+                    </div>
+                    <div class="progress-track">
+                        <div id="progress-fill" class="progress-fill"></div>
+                    </div>
+                    <p id="progress-text" class="subtext">Preparing download...</p>
+                </div>
+                <div id="status-message" class="status-message mt-4"></div>
             </div>
-        </div>
-
-        <!-- Step 3: Download & Analysis -->
-        <div class="glass p-6 md:p-8 mb-8 rounded-3xl interactive-glow">
-            <h2 class="text-xl md:text-2xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-indigo-200 via-white to-cyan-200">⬇️ Step 3: Download & Analisis</h2>
-            
-            <div id="download-controls" class="hidden fade-in-up">
-                <div class="flex flex-wrap gap-2 items-center">
-                    <button class="g-btn text-[0.6rem] md:text-xs pick-btn" onclick="downloadAndAnalyze()">
-                        <span id="download-text">Download & Analyze Assignment</span>
-                        <span id="download-loading" class="loading hidden"></span>
-                    </button>
-                    <button class="g-btn text-[0.6rem] md:text-xs" onclick="runSimilarityCheck()" id="quick-sim-btn" style="display:none;">Run Similarity</button>
-                    <button class="g-btn text-[0.6rem] md:text-xs" onclick="viewAnalysisResults()" id="view-results-btn" style="display:none;">View Results</button>
-                </div>
-            </div>
-            <div id="progress-shell" class="progress-shell">
-                <div class="flex items-center justify-between">
-                    <span class="subtext">Progress</span>
-                    <span id="progress-percent" class="progress-percent">0%</span>
-                </div>
-                <div class="progress-track">
-                    <div id="progress-fill" class="progress-fill"></div>
-                </div>
-                <p id="progress-text" class="subtext">Preparing download...</p>
-            </div>
-            <div id="status-message" class="status-message mt-4"></div>
         </div>
 
         <!-- Results Section -->

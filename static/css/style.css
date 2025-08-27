@@ -243,36 +243,65 @@ body.dark .pill { background: rgba(255,255,255,0.08); color:#e2e8f0; border-colo
 
 /* Form inputs glass */
 .glass-input {
-  background: rgba(255,255,255,0.55) !important;
-  backdrop-filter: blur(12px) saturate(160%);
-  -webkit-backdrop-filter: blur(12px) saturate(160%);
-  border: 1px solid rgba(255,255,255,0.6) !important;
+  background: rgba(255,255,255,0.45) !important;
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  border: 1.5px solid rgba(255,255,255,0.5) !important;
   color: #0f172a !important;
+  box-shadow: 0 2px 12px -2px rgba(0,0,0,0.2);
+  transition: all 0.3s ease;
 }
 body.dark .glass-input {
-  background: rgba(15,23,42,0.55) !important;
-  border-color: rgba(255,255,255,0.16) !important;
+  background: rgba(15,23,42,0.65) !important;
+  border-color: rgba(255,255,255,0.18) !important;
   color: #f1f5f9 !important;
+  box-shadow: 0 4px 16px -2px rgba(0,0,0,0.4);
 }
-.glass-input:focus { outline: 2px solid rgba(255,255,255,0.75); }
-body.dark .glass-input:focus { outline: 2px solid rgba(255,255,255,0.22); }
+.glass-input:focus { 
+  outline: 2px solid rgba(255,255,255,0.65); 
+  border-color: rgba(255,255,255,0.75) !important;
+  background: rgba(255,255,255,0.55) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px -2px rgba(0,0,0,0.3);
+}
+body.dark .glass-input:focus { 
+  outline: 2px solid rgba(255,255,255,0.25); 
+  border-color: rgba(255,255,255,0.3) !important;
+  background: rgba(15,23,42,0.75) !important;
+  box-shadow: 0 6px 24px -2px rgba(0,0,0,0.6);
+}
 
 /* Buttons subtle */
 .g-btn {
   background: linear-gradient(135deg, rgba(255,255,255,0.55), rgba(255,255,255,0.25));
-  border: 1px solid rgba(255,255,255,0.55);
+  border: 1.5px solid rgba(255,255,255,0.55);
   backdrop-filter: blur(18px) saturate(150%);
   -webkit-backdrop-filter: blur(18px) saturate(150%);
   color: #1e293b;
   font-weight: 600;
-  border-radius: 14px;
-  padding: 0.65rem 1.2rem;
+  border-radius: 12px;
+  padding: 0.75rem 1.5rem;
   box-shadow: 0 4px 18px -4px rgba(0,0,0,0.3);
-  transition: background .45s ease, transform .35s ease, box-shadow .4s ease;
+  transition: all .35s ease;
+  font-size: 0.75rem;
 }
-.g-btn:hover { background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(255,255,255,0.35)); transform: translateY(-2px); }
-body.dark .g-btn { background: linear-gradient(135deg, rgba(30,41,59,0.75), rgba(30,41,59,0.35)); color:#e2e8f0; border-color: rgba(255,255,255,0.15); }
-body.dark .g-btn:hover { background: linear-gradient(135deg, rgba(51,65,85,0.85), rgba(30,41,59,0.45)); }
+.g-btn:hover { 
+  background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(255,255,255,0.35)); 
+  transform: translateY(-2px); 
+  box-shadow: 0 6px 24px -4px rgba(0,0,0,0.4);
+  border-color: rgba(255,255,255,0.7);
+}
+body.dark .g-btn { 
+  background: linear-gradient(135deg, rgba(30,41,59,0.75), rgba(30,41,59,0.35)); 
+  color:#e2e8f0; 
+  border-color: rgba(255,255,255,0.15); 
+  box-shadow: 0 4px 18px -4px rgba(0,0,0,0.5);
+}
+body.dark .g-btn:hover { 
+  background: linear-gradient(135deg, rgba(51,65,85,0.85), rgba(30,41,59,0.45)); 
+  border-color: rgba(255,255,255,0.25);
+  box-shadow: 0 6px 24px -4px rgba(0,0,0,0.7);
+}
 
 /* Fade in animation */
 .fade-in { animation: fadeIn 0.75s ease forwards; opacity:0; }
@@ -297,6 +326,28 @@ body.dark .assignment-card { background: rgba(30,41,59,0.55); border-color: rgba
 body.dark .assignment-card.selected { box-shadow:0 0 0 2px rgba(99,102,241,0.6),0 10px 34px -8px rgba(0,0,0,.8); }
 .assignment-card .pick-btn { opacity:0; pointer-events:none; transition:opacity .35s ease; }
 .assignment-card:hover .pick-btn, .assignment-card.selected .pick-btn { opacity:1; pointer-events:auto; }
+
+/* Classroom info display */
+.classroom-info { 
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  box-shadow: 0 4px 20px -4px rgba(0,0,0,0.3);
+  transition: all 0.3s ease;
+}
+.classroom-info h3 { 
+  font-weight: 600; 
+  font-size: 1.1rem; 
+  margin-bottom: 0.75rem; 
+  color: rgba(255,255,255,0.95);
+}
+body.dark .classroom-info h3 { color: #f1f5f9; }
+.classroom-info p { 
+  font-size: 0.75rem; 
+  opacity: 0.85; 
+  line-height: 1.5; 
+  color: rgba(255,255,255,0.8);
+}
+body.dark .classroom-info p { color: #e2e8f0; opacity: 0.8; }
 
 /* Status messages (shared) */
 .status-message { font-size:.7rem; border-radius:12px; padding:10px 14px; backdrop-filter:blur(12px) saturate(160%); -webkit-backdrop-filter:blur(12px) saturate(160%); border:1px solid transparent; }
