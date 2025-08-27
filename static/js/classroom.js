@@ -2,6 +2,7 @@
 let currentClassroom = null;
 let currentAssignment = null;
 let downloadedFiles = [];
+let assignmentsData = [];
 
 // Utility functions
 function showLoading(elementId) {
@@ -29,18 +30,17 @@ function showStatus(message, type = 'info') {
 }
 
 function updateProgress(percentage, text) {
-    const progressContainer = document.getElementById('progress-container');
-    const progressFill = document.getElementById('progress-fill');
-    const progressText = document.getElementById('progress-text');
-    
-    progressContainer.style.display = 'block';
-    progressFill.style.width = percentage + '%';
-    progressText.textContent = text;
-    
+    const shell = document.getElementById('progress-shell');
+    const fill = document.getElementById('progress-fill');
+    const label = document.getElementById('progress-text');
+    const percent = document.getElementById('progress-percent');
+    if (!shell) return;
+    shell.style.display = 'flex';
+    fill.style.width = percentage + '%';
+    label.textContent = text || 'Processing...';
+    percent.textContent = Math.min(100, Math.max(0, Math.round(percentage))) + '%';
     if (percentage >= 100) {
-        setTimeout(() => {
-            progressContainer.style.display = 'none';
-        }, 2000);
+        setTimeout(()=> { shell.style.display = 'none'; }, 2200);
     }
 }
 
@@ -156,7 +156,10 @@ function displayClassroomInfo(classroom) {
 
 async function loadAssignments(classroomId) {
     const container = document.getElementById('assignments-container');
-    container.innerHTML = '<p class="status-info" style="display: block;">Loading assignments...</p>';
+    const skeleton = document.getElementById('assignments-placeholder');
+    const hint = document.getElementById('assignments-hint');
+    if (skeleton) skeleton.style.display = 'grid';
+    if (hint) { hint.style.display = 'none'; }
     
     try {
         const response = await fetch(`/api/classroom/${classroomId}/assignments`, {
@@ -168,68 +171,69 @@ async function loadAssignments(classroomId) {
         
         const data = await response.json();
         
-        if (data.success) {
-            displayAssignments(data.assignments);
+                if (data.success) {
+                        assignmentsData = data.assignments || [];
+                        displayAssignments(assignmentsData);
         } else {
-            container.innerHTML = `<p class="status-error" style="display: block;">Error: ${data.error}</p>`;
+                        if (skeleton) skeleton.style.display = 'none';
+                        container.innerHTML = `<p class="status-error status-message" style="display:block;">Error: ${data.error}</p>`;
         }
     } catch (error) {
         console.error('Error loading assignments:', error);
-        container.innerHTML = '<p class="status-error" style="display: block;">Error loading assignments</p>';
+                if (skeleton) skeleton.style.display = 'none';
+                container.innerHTML = '<p class="status-error status-message" style="display:block;">Error loading assignments</p>';
     }
 }
 
 function displayAssignments(assignments) {
-    const container = document.getElementById('assignments-container');
-    
-    if (assignments.length === 0) {
-        container.innerHTML = '<p class="status-info" style="display: block;">No assignments found in this classroom.</p>';
-        return;
-    }
-    
-    let html = '';
-    assignments.forEach(assignment => {
-        const deadline = assignment.deadline ? new Date(assignment.deadline).toLocaleDateString() : 'No deadline';
-        const students = assignment.accepted || 0;
-        
-        html += `
-            <div class="assignment-card" onclick="selectAssignment(${assignment.id})">
-                <div class="assignment-title">${assignment.title}</div>
-                <div class="assignment-meta">
-                    <strong>Type:</strong> ${assignment.type || 'Individual'} | 
-                    <strong>Deadline:</strong> ${deadline} | 
-                    <strong>Students:</strong> ${students}
-                </div>
-                <div class="assignment-description">
-                    ${assignment.slug ? `<strong>Slug:</strong> ${assignment.slug}<br>` : ''}
-                    <strong>Language:</strong> ${assignment.language || 'Not specified'}
-                </div>
-                <button class="btn btn-secondary" onclick="event.stopPropagation(); selectAssignment(${assignment.id})">
-                    Select This Assignment
-                </button>
-            </div>
-        `;
-    });
-    
-    container.innerHTML = html;
+        const container = document.getElementById('assignments-container');
+        const skeleton = document.getElementById('assignments-placeholder');
+        const countBadge = document.getElementById('assignmentCount');
+        if (skeleton) skeleton.style.display = 'none';
+        if (!assignments || !assignments.length) {
+                container.innerHTML = '<p class="status-info" style="display:block;">Tidak ada assignment pada classroom ini.</p>';
+                if (countBadge) { countBadge.classList.add('hidden'); }
+                return;
+        }
+        if (countBadge) { countBadge.textContent = assignments.length + ' items'; countBadge.classList.remove('hidden'); }
+        const frag = document.createDocumentFragment();
+        assignments.forEach(a => {
+                const card = document.createElement('div');
+                card.className = 'assignment-card fade-in-up';
+                card.dataset.id = a.id;
+                const deadline = a.deadline ? new Date(a.deadline).toLocaleDateString() : 'No deadline';
+                card.innerHTML = `
+                        <div class="flex items-start justify-between gap-4">
+                            <div>
+                                <div class="assignment-title">${a.title}</div>
+                                <div class="assignment-meta subtext">
+                                     ${a.type || 'Individual'} • ${deadline} • ${a.accepted || 0} students
+                                </div>
+                            </div>
+                            <button class="g-btn text-[0.5rem] pick-btn" type="button">Pilih</button>
+                        </div>
+                        <div class="subtext mt-2">
+                            ${a.slug ? `<span class="chip">${a.slug}</span>` : ''}
+                            ${a.language ? `<span class="chip">${a.language}</span>` : ''}
+                        </div>`;
+                card.addEventListener('click', () => selectAssignment(a.id));
+                card.querySelector('.pick-btn').addEventListener('click', (e)=> { e.stopPropagation(); selectAssignment(a.id); });
+                frag.appendChild(card);
+        });
+        // clear previous (preserve container wrapper & hint removal already done)
+        container.querySelectorAll('.assignment-card').forEach(n=> n.remove());
+        container.appendChild(frag);
 }
 
 function selectAssignment(assignmentId) {
-    // Find assignment in current data
-    currentAssignment = { id: assignmentId };
-    
-    // Show download controls
+    const chosen = assignmentsData.find(a => a.id === assignmentId) || { id: assignmentId };
+    currentAssignment = { id: chosen.id };
     const downloadControls = document.getElementById('download-controls');
-    downloadControls.classList.remove('hidden');
-    
-    // Highlight selected assignment
-    document.querySelectorAll('.assignment-card').forEach(card => {
-        card.style.border = '1px solid #ddd';
-    });
-    
-    event.target.closest('.assignment-card').style.border = '2px solid #667eea';
-    
-    showStatus(`Assignment ${assignmentId} selected. Ready to download.`, 'success');
+    if (downloadControls) downloadControls.classList.remove('hidden');
+    document.querySelectorAll('.assignment-card').forEach(card => card.classList.remove('selected'));
+    const active = document.querySelector(`.assignment-card[data-id='${assignmentId}']`);
+    if (active) active.classList.add('selected');
+    showStatus(`Assignment ${assignmentId} dipilih. Siap untuk proses.`, 'success');
 }
 
 async function downloadAndAnalyze() {
@@ -257,11 +261,10 @@ async function downloadAndAnalyze() {
         if (data.success) {
             updateProgress(100, 'Download completed!');
             downloadedFiles = data.files || [];
-            
+            document.getElementById('quick-sim-btn').style.display = 'inline-block';
+            document.getElementById('view-results-btn').style.display = 'inline-block';
             displayResults(data);
             showStatus(`Successfully downloaded ${downloadedFiles.length} files`, 'success');
-            
-            document.getElementById('view-results-btn').style.display = 'inline-block';
         } else {
             updateProgress(0, 'Download failed');
             showStatus(`Error: ${data.error}`, 'error');
@@ -281,34 +284,30 @@ function displayResults(data) {
     const filesElement = document.getElementById('downloaded-files');
     
     // Summary
-    summaryElement.innerHTML = `
-        <div class="grid">
-            <div>
-                <h4>Download Summary</h4>
-                <p><strong>Assignment ID:</strong> ${currentAssignment.id}</p>
-                <p><strong>Total Files:</strong> ${data.files ? data.files.length : 0}</p>
-                <p><strong>Download Time:</strong> ${new Date().toLocaleString()}</p>
-            </div>
-            <div>
-                <h4>Next Steps</h4>
-                <p>Files have been downloaded to the server. You can now:</p>
-                <ul>
-                    <li>Run similarity analysis</li>
-                    <li>Export results</li>
-                    <li>View individual files</li>
-                </ul>
-            </div>
-        </div>
-    `;
+        summaryElement.innerHTML = `
+                <div class="grid gap-6 md:grid-cols-2">
+                    <div class="subtext space-y-1">
+                        <p><strong>Assignment:</strong> ${currentAssignment.id}</p>
+                        <p><strong>Total Files:</strong> ${data.files ? data.files.length : 0}</p>
+                        <p><strong>Downloaded:</strong> ${new Date().toLocaleTimeString()}</p>
+                    </div>
+                    <div class="subtext space-y-1">
+                        <p>Next:</p>
+                        <p>1. Jalankan similarity</p>
+                        <p>2. Buka hasil utama</p>
+                        <p>3. Export JSON</p>
+                    </div>
+                </div>`;
     
     // Files list
     if (data.files && data.files.length > 0) {
-        const filesHtml = data.files.map(file => 
-            `<div class="file-item">📄 ${file}</div>`
-        ).join('');
+        const filesHtml = data.files.map(file => {
+            const ext = file.split('.').pop().toLowerCase();
+            return `<div class="file-item">📄 <span>${file}</span><span class="ext">${ext}</span></div>`;
+        }).join('');
         filesElement.innerHTML = filesHtml;
     } else {
-        filesElement.innerHTML = '<p>No files were downloaded.</p>';
+        filesElement.innerHTML = '<p class="subtext">No files were downloaded.</p>';
     }
     
     resultsSection.style.display = 'block';

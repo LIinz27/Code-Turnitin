@@ -3,282 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GitHub Classroom - Code Turnitin</title>
-    <link rel="stylesheet" href="/static/css/style.css">
-    <style>
-        .classroom-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .classroom-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            border-radius: 10px;
-            margin-bottom: 30px;
-            text-align: center;
-        }
-
-        .classroom-section {
-            background: white;
-            border-radius: 10px;
-            padding: 25px;
-            margin-bottom: 25px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-
-        .input-group {
-            margin-bottom: 20px;
-        }
-
-        .input-group label {
-            display: block;
-            font-weight: bold;
-            margin-bottom: 5px;
-            color: #333;
-        }
-
-        .input-group input, .input-group select {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 5px;
-            font-size: 16px;
-            transition: border-color 0.3s;
-        }
-
-        .input-group input:focus, .input-group select:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .btn {
-            background: #667eea;
-            color: white;
-            border: none;
-            padding: 12px 25px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background 0.3s;
-            margin-right: 10px;
-            margin-bottom: 10px;
-        }
-
-        .btn:hover {
-            background: #5a6fd8;
-        }
-
-        .btn-success {
-            background: #28a745;
-        }
-
-        .btn-success:hover {
-            background: #218838;
-        }
-
-        .btn-secondary {
-            background: #6c757d;
-        }
-
-        .btn-secondary:hover {
-            background: #5a6268;
-        }
-
-        .classroom-info {
-            background: #f8f9fa;
-            border-left: 4px solid #667eea;
-            padding: 15px;
-            margin: 15px 0;
-            border-radius: 0 5px 5px 0;
-        }
-
-        .assignment-card {
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 15px 0;
-            background: #f9f9f9;
-            transition: box-shadow 0.3s;
-        }
-
-        .assignment-card:hover {
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-
-        .assignment-title {
-            font-size: 18px;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 10px;
-        }
-
-        .assignment-meta {
-            color: #666;
-            font-size: 14px;
-            margin-bottom: 15px;
-        }
-
-        .progress-container {
-            margin: 20px 0;
-            padding: 20px;
-            background: #f1f3f4;
-            border-radius: 8px;
-            display: none;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 20px;
-            background: #e0e0e0;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: #4caf50;
-            width: 0%;
-            transition: width 0.3s;
-        }
-
-        .status-message {
-            margin: 15px 0;
-            padding: 12px;
-            border-radius: 5px;
-            display: none;
-        }
-
-        .status-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .status-error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .status-info {
-            background: #cce7ff;
-            color: #004085;
-            border: 1px solid #99d6ff;
-        }
-
-        .results-section {
-            margin-top: 30px;
-        }
-
-        .file-list {
-            max-height: 300px;
-            overflow-y: auto;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            padding: 15px;
-            background: #f9f9f9;
-        }
-
-        .file-item {
-            padding: 5px 0;
-            border-bottom: 1px solid #eee;
-        }
-
-        .navigation {
-            margin-bottom: 20px;
-        }
-
-        .navigation a {
-            color: #667eea;
-            text-decoration: none;
-            margin-right: 10px;
-        }
-
-        .navigation a:hover {
-            text-decoration: underline;
-        }
-
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(102, 126, 234, .3);
-            border-radius: 50%;
-            border-top-color: #667eea;
-            animation: spin 1s ease-in-out infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-
-        @media (max-width: 768px) {
-            .grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .classroom-container {
-                padding: 10px;
-            }
-        }
-    </style>
+        <title>GitHub Classroom - Code Turnitin</title>
+        <link rel="stylesheet" href="/static/css/style.css">
+        <style>
+            .loading { display:inline-block;width:18px;height:18px;border:3px solid rgba(255,255,255,.35);border-radius:50%;border-top-color:rgba(255,255,255,.85);animation:spin 1s linear infinite; }
+            @keyframes spin { to { transform: rotate(360deg); } }
+            .status-message { display:none; font-size: .7rem; border-radius:12px; padding:10px 14px; backdrop-filter: blur(12px) saturate(160%); -webkit-backdrop-filter: blur(12px) saturate(160%); }
+            .status-success { background: rgba(16,185,129,0.25); color:#064e3b; border:1px solid rgba(16,185,129,0.5); }
+            .status-error { background: rgba(239,68,68,0.25); color:#7f1d1d; border:1px solid rgba(239,68,68,0.55); }
+            .status-info { background: rgba(59,130,246,0.25); color:#0c4a6e; border:1px solid rgba(59,130,246,0.55); }
+            body.dark .status-success { color:#d1fae5; }
+            body.dark .status-error { color:#fecaca; }
+            body.dark .status-info { color:#bae6fd; }
+            .progress-container { display:none; }
+            .progress-bar { width:100%; height:10px; background:rgba(255,255,255,0.25); border-radius:16px; overflow:hidden; backdrop-filter: blur(14px); }
+            .progress-fill { height:100%; width:0%; background:linear-gradient(90deg,#34d399,#10b981,#059669); transition: width .4s ease; }
+            .file-list { max-height:280px; overflow-y:auto; font-size:.65rem; display:grid; gap:4px; }
+            .file-item { padding:6px 10px; background:rgba(255,255,255,0.25); border:1px solid rgba(255,255,255,0.4); border-radius:8px; }
+            body.dark .file-item { background:rgba(30,41,59,0.55); border-color:rgba(255,255,255,0.12); }
+            .navigation a { font-size:.65rem; text-decoration:none; padding:6px 12px; border-radius:10px; background:rgba(255,255,255,0.25); border:1px solid rgba(255,255,255,0.4); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); margin-right:6px; }
+            body.dark .navigation a { background:rgba(30,41,59,0.55); border-color:rgba(255,255,255,0.12); color:#e2e8f0; }
+            .navigation a:hover { background:rgba(255,255,255,0.45); }
+            body.dark .navigation a:hover { background:rgba(51,65,85,0.7); }
+            .assignment-title { font-size:1rem; font-weight:600; margin-bottom:6px; }
+            .assignment-meta { font-size:.6rem; opacity:.85; margin-bottom:10px; }
+        </style>
 </head>
-<body>
-    <div class="classroom-container">
+<body class="min-h-screen py-10 text-sm">
+    <button id="themeToggle" class="theme-toggle-btn" aria-label="Toggle theme">🌙 Mode</button>
+    <div class="max-w-7xl mx-auto px-4 app-shell fade-in">
         <!-- Header -->
-        <div class="classroom-header">
-            <h1>🎓 GitHub Classroom Integration</h1>
-            <p>Analisis otomatis untuk assignment GitHub Classroom</p>
-        </div>
-
-        <!-- Navigation -->
-        <div class="navigation">
-            <a href="/">← Kembali ke Beranda</a>
-            <a href="/auto_search">Auto Search</a>
+        <div class="glass p-8 md:p-10 mb-10 text-center interactive-glow rounded-3xl">
+            <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-200 via-white to-cyan-200">🎓 GitHub Classroom Integration</h1>
+            <p class="mt-3 text-indigo-50/80 dark:text-slate-300 text-xs md:text-sm">Analisis otomatis untuk assignment GitHub Classroom</p>
+            <div class="navigation mt-6 flex justify-center flex-wrap gap-2">
+                <a href="/">← Beranda</a>
+                <a href="/auto-search">Auto Search</a>
+            </div>
         </div>
 
         <!-- Step 1: Classroom Selection -->
-        <div class="classroom-section">
-            <h2>📚 Step 1: Pilih Classroom</h2>
+        <div class="glass p-6 md:p-8 mb-8 rounded-3xl interactive-glow">
+            <h2 class="text-xl md:text-2xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-indigo-200 via-white to-cyan-200">📚 Step 1: Pilih Classroom</h2>
             
             <div class="grid">
                 <div>
-                    <div class="input-group">
-                        <label for="classroom-url">Classroom URL atau ID:</label>
-                        <input type="text" 
-                               id="classroom-url" 
-                               placeholder="https://classroom.github.com/classrooms/12345-programming atau 12345"
-                               title="Masukkan URL lengkap classroom atau ID classroom saja">
+                    <div class="mb-5">
+                        <label for="classroom-url" class="block font-semibold mb-2 text-indigo-50/90 dark:text-indigo-200">Classroom URL atau ID:</label>
+                        <input type="text" id="classroom-url" placeholder="https://classroom.github.com/classrooms/12345-programming atau 12345" title="Masukkan URL lengkap classroom atau ID classroom saja" class="glass-input rounded w-full px-4 py-2 text-xs md:text-sm" />
                     </div>
-                    
-                    <button class="btn" onclick="loadClassroom()">
-                        <span id="load-classroom-text">Load Classroom</span>
-                        <span id="load-classroom-loading" class="loading hidden"></span>
-                    </button>
-                    
-                    <button class="btn btn-secondary" onclick="autoDiscoverClassrooms()">
-                        <span id="auto-discover-text">Auto Discover</span>
-                        <span id="auto-discover-loading" class="loading hidden"></span>
-                    </button>
+                    <div class="flex flex-wrap gap-2">
+                        <button class="g-btn text-[0.6rem] md:text-xs" onclick="loadClassroom()">
+                            <span id="load-classroom-text">Load Classroom</span>
+                            <span id="load-classroom-loading" class="loading hidden"></span>
+                        </button>
+                        <button class="g-btn text-[0.6rem] md:text-xs" style="--accent:var(--gradient-2);" onclick="autoDiscoverClassrooms()">
+                            <span id="auto-discover-text">Auto Discover</span>
+                            <span id="auto-discover-loading" class="loading hidden"></span>
+                        </button>
+                    </div>
                 </div>
                 
                 <div>
-                    <div class="input-group">
-                        <label for="classroom-select">Atau pilih dari daftar:</label>
-                        <select id="classroom-select" onchange="selectClassroom()">
+                    <div class="mb-5">
+                        <label for="classroom-select" class="block font-semibold mb-2 text-indigo-50/90 dark:text-indigo-200">Atau pilih dari daftar:</label>
+                        <select id="classroom-select" onchange="selectClassroom()" class="glass-input rounded w-full px-4 py-2 text-xs md:text-sm">
                             <option value="">-- Pilih Classroom --</option>
                         </select>
                     </div>
@@ -293,67 +82,78 @@
         </div>
 
         <!-- Step 2: Assignment Selection -->
-        <div class="classroom-section">
-            <h2>📝 Step 2: Pilih Assignment</h2>
-            
-            <div id="assignments-container">
-                <p class="status-info" style="display: block;">Pilih classroom terlebih dahulu untuk melihat daftar assignment.</p>
+        <div class="glass p-6 md:p-8 mb-8 rounded-3xl interactive-glow">
+            <h2 class="text-xl md:text-2xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-indigo-200 via-white to-cyan-200 flex items-center gap-3">📝 Step 2: Pilih Assignment <span id="assignmentCount" class="chip hidden"></span></h2>
+            <div id="assignments-container" class="space-y-4">
+                <div id="assignments-placeholder" class="skeleton-grid">
+                    <div class="skeleton-card"></div>
+                    <div class="skeleton-card"></div>
+                    <div class="skeleton-card"></div>
+                    <div class="skeleton-card"></div>
+                </div>
+                <p class="status-info" id="assignments-hint" style="display: block;">Pilih classroom terlebih dahulu untuk melihat daftar assignment.</p>
             </div>
         </div>
 
         <!-- Step 3: Download & Analysis -->
-        <div class="classroom-section">
-            <h2>⬇️ Step 3: Download & Analisis</h2>
+        <div class="glass p-6 md:p-8 mb-8 rounded-3xl interactive-glow">
+            <h2 class="text-xl md:text-2xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-indigo-200 via-white to-cyan-200">⬇️ Step 3: Download & Analisis</h2>
             
-            <div id="download-controls" class="hidden">
-                <button class="btn btn-success" onclick="downloadAndAnalyze()">
-                    <span id="download-text">Download & Analyze Assignment</span>
-                    <span id="download-loading" class="loading hidden"></span>
-                </button>
-                
-                <button class="btn btn-secondary" onclick="viewAnalysisResults()" id="view-results-btn" style="display: none;">
-                    View Analysis Results
-                </button>
+            <div id="download-controls" class="hidden fade-in-up">
+                <div class="flex flex-wrap gap-2 items-center">
+                    <button class="g-btn text-[0.6rem] md:text-xs pick-btn" onclick="downloadAndAnalyze()">
+                        <span id="download-text">Download & Analyze Assignment</span>
+                        <span id="download-loading" class="loading hidden"></span>
+                    </button>
+                    <button class="g-btn text-[0.6rem] md:text-xs" onclick="runSimilarityCheck()" id="quick-sim-btn" style="display:none;">Run Similarity</button>
+                    <button class="g-btn text-[0.6rem] md:text-xs" onclick="viewAnalysisResults()" id="view-results-btn" style="display:none;">View Results</button>
+                </div>
             </div>
-            
-            <!-- Progress Display -->
-            <div id="progress-container" class="progress-container">
-                <h4>Download Progress</h4>
-                <div class="progress-bar">
+            <div id="progress-shell" class="progress-shell">
+                <div class="flex items-center justify-between">
+                    <span class="subtext">Progress</span>
+                    <span id="progress-percent" class="progress-percent">0%</span>
+                </div>
+                <div class="progress-track">
                     <div id="progress-fill" class="progress-fill"></div>
                 </div>
-                <p id="progress-text">Preparing download...</p>
+                <p id="progress-text" class="subtext">Preparing download...</p>
             </div>
-            
-            <!-- Status Messages -->
-            <div id="status-message" class="status-message"></div>
+            <div id="status-message" class="status-message mt-4"></div>
         </div>
 
         <!-- Results Section -->
-        <div class="classroom-section results-section" id="results-section" style="display: none;">
-            <h2>📊 Analysis Results</h2>
-            
-            <div id="analysis-summary">
+        <div class="glass p-6 md:p-8 mb-8 rounded-3xl interactive-glow results-section" id="results-section" style="display:none;">
+            <div class="flex items-center justify-between mb-6 gap-4 flex-wrap">
+                <h2 class="text-xl md:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-200 via-white to-cyan-200">📊 Analysis Results</h2>
+                <div class="flex gap-2 flex-wrap">
+                    <button class="g-btn text-[0.55rem] md:text-xs" onclick="exportResults()">Export JSON</button>
+                </div>
+            </div>
+            <div id="analysis-summary" class="mb-6 subtext">
                 <p>Analysis results akan muncul di sini setelah download selesai.</p>
             </div>
-            
-            <div class="grid">
-                <div>
-                    <h4>Downloaded Files:</h4>
-                    <div id="downloaded-files" class="file-list">
-                        <p>No files downloaded yet.</p>
+            <div class="grid gap-10 md:grid-cols-2">
+                <div class="space-y-4">
+                    <h4 class="font-semibold text-xs tracking-wide opacity-80">Downloaded Files</h4>
+                    <div id="downloaded-files" class="file-list scroll-shadow">
+                        <p class="subtext">No files downloaded yet.</p>
                     </div>
                 </div>
-                
-                <div>
-                    <h4>Quick Actions:</h4>
-                    <button class="btn" onclick="runSimilarityCheck()">Run Similarity Check</button>
-                    <button class="btn btn-secondary" onclick="exportResults()">Export Results</button>
+                <div class="space-y-4">
+                    <h4 class="font-semibold text-xs tracking-wide opacity-80">Quick Actions</h4>
+                    <div class="flex flex-wrap gap-2">
+                        <button class="g-btn text-[0.6rem] md:text-xs" onclick="runSimilarityCheck()">Run Similarity Check</button>
+                        <button class="g-btn text-[0.6rem] md:text-xs" onclick="viewAnalysisResults()">Open Main View</button>
+                        <button class="g-btn text-[0.6rem] md:text-xs" onclick="exportResults()">Export Results</button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-
-    <script src="/static/js/classroom.js"></script>
+        <script src="/static/js/classroom.js"></script>
+        <script>
+            (function(){ const t=document.getElementById('themeToggle'); const b=document.body; const s=localStorage.getItem('ct-theme'); if(s==='dark') b.classList.add('dark'); const u=()=> t.textContent=b.classList.contains('dark')?'☀️ Light':'🌙 Dark'; u(); t.addEventListener('click',()=>{b.classList.toggle('dark'); localStorage.setItem('ct-theme', b.classList.contains('dark')?'dark':'light'); u();}); window.addEventListener('pointermove', e=>{ const x=(e.clientX/window.innerWidth)*100; const y=(e.clientY/window.innerHeight)*100; b.style.setProperty('--pointer-x',x+'%'); b.style.setProperty('--pointer-y',y+'%'); }, {passive:true}); })();
+        </script>
 </body>
 </html>
