@@ -59,29 +59,37 @@ os.makedirs(UPLOAD_FOLDER_GITHUB, exist_ok=True)
 def clear_student_files():
     print(f"Membersihkan folder: {app.config['UPLOAD_FOLDER_MAHASISWA']}")
     count = 0
-    for filename in os.listdir(app.config['UPLOAD_FOLDER_MAHASISWA']):
-        file_path = os.path.join(app.config['UPLOAD_FOLDER_MAHASISWA'], filename)
+    for item in os.listdir(app.config['UPLOAD_FOLDER_MAHASISWA']):
+        item_path = os.path.join(app.config['UPLOAD_FOLDER_MAHASISWA'], item)
         try:
-            if os.path.isfile(file_path) and not file_path.endswith('.gitkeep'):
-                os.unlink(file_path)
+            if os.path.isfile(item_path) and not item_path.endswith('.gitkeep'):
+                os.unlink(item_path)
+                count += 1
+            elif os.path.isdir(item_path):
+                import shutil
+                shutil.rmtree(item_path)
                 count += 1
         except Exception as e:
-            print(f"Error deleting file {file_path}: {e}")
-    print(f"Berhasil menghapus {count} file mahasiswa.")
+            print(f"Error deleting item {item_path}: {e}")
+    print(f"Berhasil menghapus {count} item mahasiswa.")
     return count
 
 def clear_github_files():
     print(f"Membersihkan folder: {app.config['UPLOAD_FOLDER_GITHUB']}")
     count = 0
-    for filename in os.listdir(app.config['UPLOAD_FOLDER_GITHUB']):
-        file_path = os.path.join(app.config['UPLOAD_FOLDER_GITHUB'], filename)
+    for item in os.listdir(app.config['UPLOAD_FOLDER_GITHUB']):
+        item_path = os.path.join(app.config['UPLOAD_FOLDER_GITHUB'], item)
         try:
-            if os.path.isfile(file_path) and not file_path.endswith('.gitkeep'):
-                os.unlink(file_path)
+            if os.path.isfile(item_path) and not item_path.endswith('.gitkeep'):
+                os.unlink(item_path)
+                count += 1
+            elif os.path.isdir(item_path):
+                import shutil
+                shutil.rmtree(item_path)
                 count += 1
         except Exception as e:
-            print(f"Error deleting file {file_path}: {e}")
-    print(f"Berhasil menghapus {count} file GitHub.")
+            print(f"Error deleting item {item_path}: {e}")
+    print(f"Berhasil menghapus {count} item GitHub.")
     return count
 
 @app.route('/')
@@ -136,6 +144,7 @@ def get_code_content():
     else:
         return jsonify({"error": "Invalid file_type."}), 400
 
+    # Filename sekarang berbentuk 'repo_folder/file_name'
     file_path = os.path.join(base_dir, filename)
 
     if not os.path.exists(file_path):
@@ -212,21 +221,28 @@ def analyze_code():
     mahasiswa_dir = app.config['UPLOAD_FOLDER_MAHASISWA']
     github_dir = app.config['UPLOAD_FOLDER_GITHUB']
 
-    mahasiswa_file_paths = [os.path.join(mahasiswa_dir, f) for f in uploaded_student_files if os.path.isfile(os.path.join(mahasiswa_dir, f))]
-    github_file_paths = [os.path.join(github_dir, f) for f in scraped_github_files if os.path.isfile(os.path.join(github_dir, f))]
+    # Sekarang uploaded_student_files dan scraped_github_files berisi dictionary dengan info file
+    mahasiswa_file_paths = [f['file_path'] for f in uploaded_student_files if os.path.isfile(f['file_path'])]
+    github_file_paths = [f['file_path'] for f in scraped_github_files if os.path.isfile(f['file_path'])]
 
     print("\nMemulai perbandingan menggunakan MOSS-like...")
 
     if github_file_paths:
         for m_path in mahasiswa_file_paths:
-            m_filename = os.path.basename(m_path)
+            # Cari info file mahasiswa dari uploaded_student_files
+            m_info = next((f for f in uploaded_student_files if f['file_path'] == m_path), None)
+            m_display_name = f"{m_info['repo_folder']}/{m_info['file_name']}" if m_info else os.path.basename(m_path)
+            
             for g_path in github_file_paths:
-                g_filename = os.path.basename(g_path)
+                # Cari info file github dari scraped_github_files
+                g_info = next((f for f in scraped_github_files if f['file_path'] == g_path), None)
+                g_display_name = f"{g_info['repo_folder']}/{g_info['file_name']}" if g_info else os.path.basename(g_path)
+                
                 score, blocks_mhs, blocks_gh = get_similar_blocks(m_path, g_path, k=5, w=10) # Sesuaikan k dan w jika perlu
                 
                 results_mh_vs_gh.append({
-                    "source_file": m_filename,
-                    "compared_file": g_filename,
+                    "source_file": m_display_name,
+                    "compared_file": g_display_name,
                     "score": round(score * 100, 2),
                     "similar_blocks_mhs": blocks_mhs, 
                     "similar_blocks_gh": blocks_gh    
@@ -282,24 +298,50 @@ def auto_search_confirm():
         return jsonify({'error': 'Cache tidak ditemukan atau kadaluarsa'}), 404
 
     clear_github_files()
+    scraped_github_files = []
     for full_name in selected_repos:
         repo_url = f'https://github.com/{full_name}'
         print(f"[AUTO] Scraping selected repo: {repo_url}")
-        scrape_repo_files(repo_url, app.config['UPLOAD_FOLDER_GITHUB'])
+        downloaded = scrape_repo_files(repo_url, app.config['UPLOAD_FOLDER_GITHUB'])
+        scraped_github_files.extend(downloaded)
 
     results = []
     mahasiswa_dir = app.config['UPLOAD_FOLDER_MAHASISWA']
-    github_dir = app.config['UPLOAD_FOLDER_GITHUB']
-    mahasiswa_files = [f for f in os.listdir(mahasiswa_dir) if os.path.isfile(os.path.join(mahasiswa_dir, f))]
-    github_files = [f for f in os.listdir(github_dir) if os.path.isfile(os.path.join(github_dir, f))]
-    for m in mahasiswa_files:
-        for g in github_files:
-            m_path = os.path.join(mahasiswa_dir, m)
-            g_path = os.path.join(github_dir, g)
+    
+    # Ambil semua file mahasiswa dari struktur folder baru
+    mahasiswa_files_info = []
+    for item in os.listdir(mahasiswa_dir):
+        item_path = os.path.join(mahasiswa_dir, item)
+        if os.path.isdir(item_path):
+            # Folder repository
+            for filename in os.listdir(item_path):
+                file_path = os.path.join(item_path, filename)
+                if os.path.isfile(file_path):
+                    mahasiswa_files_info.append({
+                        'repo_folder': item,
+                        'file_name': filename,
+                        'file_path': file_path
+                    })
+        elif os.path.isfile(item_path):
+            # File langsung di folder mahasiswa (backward compatibility)
+            mahasiswa_files_info.append({
+                'repo_folder': '',
+                'file_name': item,
+                'file_path': item_path
+            })
+
+    for m_info in mahasiswa_files_info:
+        for g_info in scraped_github_files:
+            m_path = m_info['file_path']
+            g_path = g_info['file_path']
+            
+            m_display_name = f"{m_info['repo_folder']}/{m_info['file_name']}" if m_info['repo_folder'] else m_info['file_name']
+            g_display_name = f"{g_info['repo_folder']}/{g_info['file_name']}"
+            
             score, blocks_m, blocks_g = get_similar_blocks(m_path, g_path, k=5, w=10)
             results.append({
-                'source_file': m,
-                'compared_file': g,
+                'source_file': m_display_name,
+                'compared_file': g_display_name,
                 'score': round(score*100,2),
                 'similar_blocks_mhs': blocks_m,
                 'similar_blocks_gh': blocks_g

@@ -56,11 +56,17 @@ def scrape_repo_files(repo_url, save_dir, allowed_extensions=('.js', '.py', '.ja
     """
     Mengunduh semua file kode dari repositori GitHub ke direktori yang ditentukan.
     Menggunakan GitHub API untuk mendapatkan daftar file.
+    Files akan disimpan dalam folder sesuai nama repository.
     """
     username, repo_name = get_github_repo_info(repo_url)
     if not username or not repo_name:
         print(f"URL repositori tidak valid: {repo_url}")
         return []
+
+    # Buat folder untuk repository ini
+    repo_folder_name = f"{username}_{repo_name}"
+    repo_save_dir = os.path.join(save_dir, repo_folder_name)
+    os.makedirs(repo_save_dir, exist_ok=True)
 
     api_url = f"https://api.github.com/repos/{username}/{repo_name}/git/trees/main?recursive=1"
     # Atau 'master' jika 'main' tidak ada. Bisa juga deteksi default branch.
@@ -85,7 +91,7 @@ def scrape_repo_files(repo_url, save_dir, allowed_extensions=('.js', '.py', '.ja
         print(f"Gagal mengambil daftar file dari API GitHub {api_url}: {e}")
         return []
 
-    downloaded_files_names = []
+    downloaded_files_info = []
     if 'tree' in tree_data:
         for item in tree_data['tree']:
             if item['type'] == 'blob': # 'blob' berarti file
@@ -97,20 +103,31 @@ def scrape_repo_files(repo_url, save_dir, allowed_extensions=('.js', '.py', '.ja
                     # Pastikan 'main' cocok dengan branch yang Anda ambil dari API.
                     # Jika 'main' tidak ditemukan, coba 'master' atau ambil dari response API.
 
-                    # Buat nama file unik untuk penyimpanan lokal
-                    local_filename = f"{username}_{repo_name}_{file_path.replace('/', '_')}"
-                    save_path = os.path.join(save_dir, local_filename)
+                    # Simpan dengan struktur folder asli atau nama file sederhana
+                    # Kita akan gunakan nama file sederhana untuk menghindari masalah dengan path yang panjang
+                    safe_filename = file_path.replace('/', '_').replace('\\', '_')
+                    save_path = os.path.join(repo_save_dir, safe_filename)
 
                     if not os.path.exists(save_path):
                         print(f"  Mengunduh: {file_path}")
                         if download_raw_code(raw_file_url, save_path):
-                            downloaded_files_names.append(local_filename)
+                            downloaded_files_info.append({
+                                'repo_folder': repo_folder_name,
+                                'file_name': safe_filename,
+                                'file_path': save_path,
+                                'original_path': file_path
+                            })
                     else:
                         # print(f"  Sudah ada: {file_path}") # Uncomment if you want to see skipped files
-                        downloaded_files_names.append(local_filename) # Masih anggap ini sebagai file yang "diambil"
+                        downloaded_files_info.append({
+                            'repo_folder': repo_folder_name,
+                            'file_name': safe_filename,
+                            'file_path': save_path,
+                            'original_path': file_path
+                        }) # Masih anggap ini sebagai file yang "diambil"
 
-    print(f"Selesai mengunduh file dari {repo_url}. Total: {len(downloaded_files_names)} file kode.")
-    return downloaded_files_names
+    print(f"Selesai mengunduh file dari {repo_url}. Total: {len(downloaded_files_info)} file kode.")
+    return downloaded_files_info
 
 # Jika Anda ingin menguji scraper ini secara mandiri:
 if __name__ == "__main__":
@@ -123,14 +140,17 @@ if __name__ == "__main__":
     output_dir = "data/github"
     os.makedirs(output_dir, exist_ok=True)
     
-    # Hapus file GitHub lama sebelum mengunduh yang baru (opsional)
-    for filename in os.listdir(output_dir):
-        file_path = os.path.join(output_dir, filename)
+    # Hapus folder GitHub lama sebelum mengunduh yang baru (opsional)
+    for item in os.listdir(output_dir):
+        item_path = os.path.join(output_dir, item)
         try:
-            if os.path.isfile(file_path):
-                os.unlink(file_path)
+            if os.path.isfile(item_path):
+                os.unlink(item_path)
+            elif os.path.isdir(item_path):
+                import shutil
+                shutil.rmtree(item_path)
         except Exception as e:
-            print(f"Error deleting old github file {file_path}: {e}")
+            print(f"Error deleting old github item {item_path}: {e}")
 
     all_downloaded_github_files = []
     for repo_url in repo_urls_to_scrape:
@@ -139,4 +159,4 @@ if __name__ == "__main__":
     
     print("\nSemua file GitHub yang berhasil diunduh:")
     for f in all_downloaded_github_files:
-        print(f"- {f}")
+        print(f"- {f['repo_folder']}/{f['file_name']} (dari {f['original_path']})")
