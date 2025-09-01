@@ -9,102 +9,148 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 </head>
-<body class="min-h-screen flex flex-col items-center py-10 text-sm">
-  <button id="themeToggle" class="theme-toggle-btn" aria-label="Toggle theme">🌙 Mode</button>
-  <main class="w-full max-w-6xl px-4 app-shell fade-in">
-    <header class="mb-10 text-center glass p-8 md:p-10 interactive-glow">
-      <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-200 via-white to-cyan-200 drop-shadow">Sistem Deteksi Plagiarisme Kode</h1>
-      <p class="mt-3 text-indigo-50/90 dark:text-slate-300 text-sm md:text-base">Bandingkan repositori mahasiswa dengan referensi GitHub secara cepat dan visual.</p>
-      <div class="mt-6 flex flex-wrap justify-center gap-3">
-        <a href="/auto-search" class="g-btn text-xs md:text-sm">Pencarian Otomatis Sumber →</a>
-        <a href="/classroom" class="g-btn text-xs md:text-sm">🎓 GitHub Classroom →</a>
-      </div>
-      <div class="mt-6 flex flex-wrap gap-2 justify-center">
-        <span class="pill">Similarity Engine</span>
-        <span class="pill">Multi Repo</span>
-        <span class="pill">Glass UI Beta</span>
+<body class="min-h-screen bg-gray-50 dark:bg-gray-900">
+  <div class="max-w-4xl mx-auto p-6">
+    <!-- Header -->
+    <header class="text-center mb-8">
+      <h1 class="text-3xl font-bold text-gray-800 dark:text-white mb-2">Code Turnitin</h1>
+      <p class="text-gray-600 dark:text-gray-300 mb-6">Deteksi plagiarisme kode secara otomatis</p>
+      
+      <!-- Navigation -->
+      <div class="flex justify-center space-x-4 mb-8">
+        <a href="/auto-search" class="btn-primary">
+          🔍 Pencarian Otomatis
+        </a>
+        <a href="/classroom" class="btn-secondary">
+          🎓 GitHub Classroom
+        </a>
+        <button id="themeToggle" class="btn-secondary">🌙</button>
       </div>
     </header>
 
     <!-- Form Input Repositori -->
-    <section class="space-y-8 glass p-6 md:p-8 interactive-glow">
-      <div class="grid md:grid-cols-2 gap-8">
+    <main class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8">
+      <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-6">Input Repositori</h2>
+      
+      <div class="grid md:grid-cols-2 gap-6 mb-6">
+        <!-- Repositori Mahasiswa -->
         <div>
-          <label class="block font-semibold mb-2 tracking-wide text-indigo-50/90 dark:text-indigo-200" for="studentRepoUrlInput">URL Repositori Mahasiswa</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            URL Repositori Mahasiswa
+          </label>
           <div class="flex gap-2">
-            <input id="studentRepoUrlInput" type="text" placeholder="https://github.com/user/project" class="flex-1 glass-input rounded px-3 py-2 text-xs md:text-sm" />
-            <button id="addStudentRepoUrl" class="g-btn text-xs">Tambah</button>
+            <input 
+              id="studentRepoUrlInput" 
+              type="text" 
+              placeholder="https://github.com/user/project" 
+              class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md 
+                     bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                     focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            />
+            <button id="addStudentRepoUrl" class="btn-primary">Tambah</button>
           </div>
-          <div id="studentRepoUrlList" class="mt-3 text-[0.7rem] md:text-xs text-indigo-50/70 dark:text-slate-300 italic">Belum ada URL ditambahkan</div>
-        </div>
-        <div>
-          <label class="block font-semibold mb-2 tracking-wide text-indigo-50/90 dark:text-indigo-200" for="githubUrlInput">URL Repositori GitHub Pembanding</label>
-          <div class="flex gap-2">
-            <input id="githubUrlInput" type="text" placeholder="https://github.com/framework/lib" class="flex-1 glass-input rounded px-3 py-2 text-xs md:text-sm" />
-            <button id="addGithubUrl" class="g-btn text-xs">Tambah</button>
+          <div id="studentRepoUrlList" class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+            Belum ada URL ditambahkan
           </div>
-          <div id="githubUrlList" class="mt-3 text-[0.7rem] md:text-xs text-indigo-50/70 dark:text-slate-300 italic">Belum ada URL ditambahkan</div>
         </div>
-      </div>
-      <div class="divider-soft"></div>
-      <div class="flex flex-col md:flex-row gap-4 items-center justify-between">
-        <div class="text-[0.65rem] md:text-xs text-indigo-50/70 dark:text-slate-300 max-w-md leading-relaxed">Masukkan beberapa repositori mahasiswa dan repositori publik untuk membandingkan kemiripan struktur dan blok kode.</div>
-        <button id="runAnalysisButton" class="g-btn text-sm md:text-base px-8 py-3 interactive-glow">Mulai Analisis</button>
-      </div>
-      <div id="loadingIndicator" class="mt-2 text-[0.65rem] md:text-xs hidden animate-pulse text-indigo-50/80">Memproses analisis...</div>
-    </section>
 
-    <!-- Tombol Analisis -->
-    <!-- Hasil -->
-    <section id="results-section" class="hidden glass mt-10 p-6 md:p-8 interactive-glow">
-      <div class="flex items-center justify-between mb-6 flex-wrap gap-4">
-        <h2 class="text-xl md:text-2xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-200 via-white to-cyan-200">Hasil Deteksi Kemiripan</h2>
-        <div class="flex gap-2 text-[0.6rem] md:text-xs">
-          <span class="pill">Sorted</span>
-          <span class="pill">Top Similarity</span>
+        <!-- Repositori GitHub Pembanding -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            URL Repositori GitHub Pembanding
+          </label>
+          <div class="flex gap-2">
+            <input 
+              id="githubUrlInput" 
+              type="text" 
+              placeholder="https://github.com/framework/lib" 
+              class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md 
+                     bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                     focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            />
+            <button id="addGithubUrl" class="btn-primary">Tambah</button>
+          </div>
+          <div id="githubUrlList" class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+            Belum ada URL ditambahkan
+          </div>
         </div>
       </div>
-      <div class="overflow-x-auto rounded-lg">
-        <table class="w-full text-[0.65rem] md:text-xs text-left border-collapse glass-table glass-outline">
+
+      <!-- Tombol Analisis -->
+      <div class="flex justify-between items-center pt-4 border-t border-gray-200 dark:border-gray-700">
+        <p class="text-sm text-gray-600 dark:text-gray-400">
+          Masukkan repositori untuk membandingkan kemiripan kode
+        </p>
+        <button id="runAnalysisButton" class="btn-primary">
+          Mulai Analisis
+        </button>
+      </div>
+      
+      <div id="loadingIndicator" class="mt-4 text-sm text-blue-600 dark:text-blue-400 hidden">
+        Memproses analisis...
+      </div>
+    </main>
+    <!-- Hasil -->
+    <section id="results-section" class="hidden bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl font-semibold text-gray-800 dark:text-white">Hasil Deteksi Kemiripan</h2>
+        <span class="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-sm rounded-full">
+          Diurutkan berdasarkan kemiripan
+        </span>
+      </div>
+      
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm border-collapse">
           <thead>
-            <tr class="text-indigo-50/80 dark:text-slate-300">
-              <th class="p-3 font-semibold">File Mahasiswa</th>
-              <th class="p-3 font-semibold">File GitHub</th>
-              <th class="p-3 font-semibold">Kemiripan (%)</th>
-              <th class="p-3 font-semibold text-right">Aksi</th>
+            <tr class="border-b border-gray-200 dark:border-gray-700">
+              <th class="text-left p-3 font-medium text-gray-700 dark:text-gray-300">File Mahasiswa</th>
+              <th class="text-left p-3 font-medium text-gray-700 dark:text-gray-300">File GitHub</th>
+              <th class="text-left p-3 font-medium text-gray-700 dark:text-gray-300">Kemiripan (%)</th>
+              <th class="text-right p-3 font-medium text-gray-700 dark:text-gray-300">Aksi</th>
             </tr>
           </thead>
-          <tbody id="mhVsGhResults" class="divide-y divide-white/10 dark:divide-white/5"></tbody>
+          <tbody id="mhVsGhResults" class="divide-y divide-gray-200 dark:divide-gray-700">
+          </tbody>
         </table>
-        <div id="noResults" class="hidden text-center text-indigo-50/70 dark:text-slate-300 py-6 italic">Tidak ada kemiripan yang signifikan ditemukan.</div>
+        <div id="noResults" class="hidden text-center text-gray-500 dark:text-gray-400 py-8">
+          Tidak ada kemiripan yang signifikan ditemukan.
+        </div>
       </div>
     </section>
-  </main>
+  </div>
 
   <!-- Modal Perbandingan Kode -->
-  <div id="codeCompareModal" class="fixed inset-0 bg-slate-900/70 flex items-center justify-center p-4 z-50 hidden">
-    <div class="modal-content rounded-3xl p-6 md:p-8 w-full max-w-7xl overflow-auto max-h-[90vh] relative glass-modal fade-in">
-      <button class="close-button absolute top-3 right-3 text-slate-600 dark:text-slate-300 hover:rotate-90 transition text-3xl leading-none">&times;</button>
-      <div class="flex flex-col md:flex-row md:items-center gap-4 mb-6 pb-4 border-b border-white/30 dark:border-white/10">
+  <div id="codeCompareModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-lg w-full max-w-6xl max-h-[90vh] overflow-auto shadow-xl">
+      <div class="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700">
         <div>
-          <h2 class="text-2xl md:text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-200 via-white to-cyan-200">Detail Kemiripan Kode</h2>
-          <p class="text-[0.65rem] md:text-xs text-indigo-50/70 dark:text-slate-300 mt-2">Membandingkan: <span id="modal-filename-mhs" class="font-semibold"></span> vs <span id="modal-filename-gh" class="font-semibold"></span></p>
+          <h2 class="text-xl font-semibold text-gray-800 dark:text-white">Perbandingan Kode</h2>
+          <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            <span id="modal-filename-mhs" class="font-medium"></span> vs 
+            <span id="modal-filename-gh" class="font-medium"></span>
+          </p>
         </div>
-        <div class="ml-auto flex gap-2 items-center">
-          <span class="pill">Synced Scroll</span>
-        </div>
+        <button class="close-button text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-2xl">
+          &times;
+        </button>
       </div>
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[65vh]">
-        <div class="code-pane rounded-xl flex flex-col overflow-hidden">
-          <div class="px-4 py-2 flex items-center justify-between text-[0.6rem] md:text-xs uppercase tracking-wide font-semibold text-indigo-50/70 dark:text-slate-200 border-b border-white/10">Kode Mahasiswa</div>
-          <pre class="flex-1 overflow-auto p-4 text-[0.6rem] md:text-xs text-indigo-50/90 dark:text-slate-200 scrollbar-thin">
-<code id="code-mhs" class="language-js hljs"></code>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6">
+        <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+          <div class="px-4 py-2 bg-gray-50 dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300">
+            Kode Mahasiswa
+          </div>
+          <pre class="overflow-auto p-4 text-sm bg-gray-50 dark:bg-gray-900 max-h-96">
+            <code id="code-mhs" class="language-js"></code>
           </pre>
         </div>
-        <div class="code-pane rounded-xl flex flex-col overflow-hidden">
-          <div class="px-4 py-2 flex items-center justify-between text-[0.6rem] md:text-xs uppercase tracking-wide font-semibold text-indigo-50/70 dark:text-slate-200 border-b border-white/10">Kode GitHub</div>
-          <pre class="flex-1 overflow-auto p-4 text-[0.6rem] md:text-xs text-indigo-50/90 dark:text-slate-200 scrollbar-thin">
-<code id="code-gh" class="language-js hljs"></code>
+        
+        <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+          <div class="px-4 py-2 bg-gray-50 dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300">
+            Kode GitHub
+          </div>
+          <pre class="overflow-auto p-4 text-sm bg-gray-50 dark:bg-gray-900 max-h-96">
+            <code id="code-gh" class="language-js"></code>
           </pre>
         </div>
       </div>
@@ -113,19 +159,24 @@
 
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>
   <script>
-    // Dynamic theme + pointer reactive background
-    (function(){
-      const toggle = document.getElementById('themeToggle');
-      const body = document.body;
-      const stored = localStorage.getItem('ct-theme');
-      if(stored==='dark') body.classList.add('dark');
-      function updateLabel(){ toggle.textContent = body.classList.contains('dark') ? '☀️ Light' : '🌙 Dark'; }
-      updateLabel();
-      toggle.addEventListener('click', ()=> { body.classList.toggle('dark'); localStorage.setItem('ct-theme', body.classList.contains('dark') ? 'dark':'light'); updateLabel(); });
-      window.addEventListener('pointermove', (e)=>{
-        const x = (e.clientX / window.innerWidth) * 100; const y = (e.clientY / window.innerHeight) * 100; body.style.setProperty('--pointer-x', x+'%'); body.style.setProperty('--pointer-y', y+'%');
-      }, {passive:true});
-    })();
+    // Simple theme toggle
+    const themeToggle = document.getElementById('themeToggle');
+    const body = document.body;
+    
+    // Load saved theme
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+      body.classList.add('dark');
+      themeToggle.textContent = '☀️';
+    }
+    
+    // Theme toggle functionality
+    themeToggle.addEventListener('click', () => {
+      body.classList.toggle('dark');
+      const isDark = body.classList.contains('dark');
+      themeToggle.textContent = isDark ? '☀️' : '🌙';
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    });
   </script>
 </body>
 </html>

@@ -7,100 +7,153 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
 </head>
-<body class="min-h-screen flex flex-col items-center py-10 text-sm">
-  <button id="themeToggle" class="theme-toggle-btn" aria-label="Toggle theme">🌙 Mode</button>
-  <main class="w-full max-w-6xl px-4 space-y-10 app-shell fade-in">
-    <header class="text-center glass p-8 md:p-10 interactive-glow">
-      <h1 class="text-3xl md:text-4xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-indigo-200 via-white to-cyan-200">Pencarian Otomatis Sumber GitHub</h1>
-      <p class="mt-3 text-indigo-50/80 dark:text-slate-300 text-xs md:text-sm">Cari repositori publik kandidat yang berpotensi menjadi sumber plagiarisme berdasarkan fingerprint kode.</p>
-      <div class="mt-6"><a href="/" class="g-btn text-[0.65rem] md:text-xs">&larr; Kembali</a></div>
+<body class="min-h-screen bg-gray-50 dark:bg-gray-900">
+  <div class="max-w-4xl mx-auto p-6">
+    <!-- Header -->
+    <header class="text-center mb-8">
+      <h1 class="text-3xl font-bold text-gray-800 dark:text-white mb-2">Pencarian Otomatis</h1>
+      <p class="text-gray-600 dark:text-gray-300 mb-6">Cari repositori GitHub yang berpotensi menjadi sumber plagiarisme</p>
+      
+      <!-- Navigation -->
+      <div class="flex justify-center space-x-4 mb-8">
+        <a href="/" class="btn-secondary">← Beranda</a>
+        <a href="/classroom" class="btn-secondary">🎓 GitHub Classroom</a>
+        <button id="themeToggle" class="btn-secondary">🌙</button>
+      </div>
     </header>
 
-    <section class="space-y-8 glass p-6 md:p-8 interactive-glow">
-      <div class="grid md:grid-cols-3 gap-8 items-end">
+    <!-- Input Form -->
+    <section class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8">
+      <div class="grid md:grid-cols-3 gap-6 items-end">
         <div class="md:col-span-2">
-          <label class="block font-semibold mb-2 text-indigo-50/90 dark:text-indigo-200" for="studentRepoUrlInput">URL Repositori Mahasiswa</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            URL Repositori Mahasiswa
+          </label>
           <div class="flex gap-2">
-            <input id="studentRepoUrlInput" type="text" placeholder="https://github.com/user/project" class="flex-1 glass-input rounded px-3 py-2 text-xs md:text-sm" />
-            <button id="addStudentRepoUrl" class="g-btn text-xs">Tambah</button>
+            <input 
+              id="studentRepoUrlInput" 
+              type="text" 
+              placeholder="https://github.com/user/project" 
+              class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md 
+                     bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                     focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            />
+            <button id="addStudentRepoUrl" class="btn-primary">Tambah</button>
           </div>
-          <div id="studentRepoUrlList" class="mt-3 text-[0.65rem] md:text-xs text-indigo-50/70 dark:text-slate-300 italic">Belum ada URL ditambahkan</div>
+          <div id="studentRepoUrlList" class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+            Belum ada URL ditambahkan
+          </div>
         </div>
-        <div class="text-left md:text-right flex md:block flex-wrap gap-3">
-          <button id="runAutoSearch" class="g-btn text-xs md:text-sm px-6">Cari Sumber</button>
+        <div class="flex justify-end">
+          <button id="runAutoSearch" class="btn-primary">Cari Sumber</button>
         </div>
       </div>
-      <div id="autoSearchLoading" class="hidden text-[0.65rem] md:text-xs text-indigo-50/80 animate-pulse">Mencari kandidat repositori...</div>
+      <div id="autoSearchLoading" class="mt-4 text-sm text-blue-600 dark:text-blue-400 hidden">
+        Mencari kandidat repositori...
+      </div>
     </section>
 
-    <section id="candidatesSection" class="hidden glass p-6 md:p-8 interactive-glow">
+    <!-- Candidates Section -->
+    <section id="candidatesSection" class="hidden bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8">
       <div class="flex items-center justify-between mb-6">
-        <h2 class="text-xl md:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-200 via-white to-cyan-200">Kandidat Repositori</h2>
-        <span class="pill" id="candidateCount">0 ditemukan</span>
+        <h2 class="text-xl font-semibold text-gray-800 dark:text-white">Kandidat Repositori</h2>
+        <span class="px-3 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-sm rounded-full" id="candidateCount">
+          0 ditemukan
+        </span>
       </div>
       <form id="candidatesForm" class="space-y-6">
-        <div id="candidatesContainer" class="glass-card-grid"></div>
+        <div id="candidatesContainer" class="grid-responsive"></div>
         <div class="flex justify-end">
-          <button id="confirmSelection" type="submit" class="g-btn text-xs md:text-sm">Konfirmasi & Unduh & Analisis</button>
+          <button id="confirmSelection" type="submit" class="btn-primary">
+            Konfirmasi & Analisis
+          </button>
         </div>
       </form>
     </section>
 
-    <section id="autoResultsSection" class="hidden glass p-6 md:p-8 interactive-glow">
-      <div class="flex items-center justify-between mb-6 flex-wrap gap-4">
-        <h2 class="text-xl md:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-200 via-white to-cyan-200">Hasil Analisis Otomatis</h2>
+    <!-- Results Section -->
+    <section id="autoResultsSection" class="hidden bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl font-semibold text-gray-800 dark:text-white">Hasil Analisis</h2>
         <div class="flex gap-2 items-center">
-          <button id="exportJsonBtn" class="g-btn text-[0.6rem] md:text-xs">Export JSON</button>
-          <span class="pill">Similarity</span>
+          <button id="exportJsonBtn" class="btn-outline">Export JSON</button>
+          <span class="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-sm rounded-full">
+            Similarity
+          </span>
         </div>
       </div>
-      <div class="overflow-x-auto rounded-lg">
-        <table class="w-full text-[0.65rem] md:text-xs glass-table glass-outline">
+      
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm border-collapse">
           <thead>
-            <tr class="text-indigo-50/80 dark:text-slate-300">
-              <th class="p-3 font-semibold">File Mahasiswa</th>
-              <th class="p-3 font-semibold">File GitHub</th>
-              <th class="p-3 font-semibold">Kemiripan (%)</th>
-              <th class="p-3 font-semibold">Aksi</th>
+            <tr class="border-b border-gray-200 dark:border-gray-700">
+              <th class="text-left p-3 font-medium text-gray-700 dark:text-gray-300">File Mahasiswa</th>
+              <th class="text-left p-3 font-medium text-gray-700 dark:text-gray-300">File GitHub</th>
+              <th class="text-left p-3 font-medium text-gray-700 dark:text-gray-300">Kemiripan (%)</th>
+              <th class="text-center p-3 font-medium text-gray-700 dark:text-gray-300">Aksi</th>
             </tr>
           </thead>
-          <tbody id="autoResultsBody" class="divide-y divide-white/10 dark:divide-white/5"></tbody>
+          <tbody id="autoResultsBody" class="divide-y divide-gray-200 dark:divide-gray-700">
+          </tbody>
         </table>
       </div>
     </section>
-  </main>
-  <!-- Reuse comparison modal -->
-  <div id="autoCompareModal" class="fixed inset-0 bg-slate-900/70 flex items-center justify-center p-4 z-50 hidden">
-    <div class="modal-content rounded-3xl p-6 md:p-8 w-full max-w-7xl overflow-auto max-h-[90vh] relative glass-modal fade-in">
-      <button class="auto-close-modal absolute top-3 right-3 text-slate-600 dark:text-slate-300 hover:rotate-90 transition text-3xl leading-none">&times;</button>
-      <div class="flex flex-col md:flex-row md:items-center gap-4 mb-6 pb-4 border-b border-white/30 dark:border-white/10">
+  </div>
+  <!-- Modal -->
+  <div id="autoCompareModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-lg w-full max-w-6xl max-h-[90vh] overflow-auto shadow-xl">
+      <div class="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700">
         <div>
-          <h2 class="text-2xl md:text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-200 via-white to-cyan-200">Detail Perbandingan</h2>
-          <p class="text-[0.6rem] md:text-xs text-indigo-50/70 dark:text-slate-300 mt-2" id="autoModalTitle"></p>
+          <h2 class="text-xl font-semibold text-gray-800 dark:text-white">Perbandingan Kode</h2>
+          <p class="text-sm text-gray-600 dark:text-gray-400 mt-1" id="autoModalTitle"></p>
         </div>
-        <div class="ml-auto flex gap-2 items-center"><span class="pill">Synced</span></div>
+        <button class="auto-close-modal text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-2xl">
+          &times;
+        </button>
       </div>
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[65vh]">
-        <div class="code-pane rounded-xl flex flex-col overflow-hidden">
-          <div class="px-4 py-2 flex items-center justify-between text-[0.6rem] md:text-xs uppercase tracking-wide font-semibold text-indigo-50/70 dark:text-slate-200 border-b border-white/10">Kode Mahasiswa</div>
-          <pre class="flex-1 overflow-auto p-4 text-[0.6rem] md:text-xs text-indigo-50/90 dark:text-slate-200 scrollbar-thin"><code id="autoCodeMhs"></code></pre>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6">
+        <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+          <div class="px-4 py-2 bg-gray-50 dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300">
+            Kode Mahasiswa
+          </div>
+          <pre class="overflow-auto p-4 text-sm bg-gray-50 dark:bg-gray-900 max-h-96">
+            <code id="autoCodeMhs"></code>
+          </pre>
         </div>
-        <div class="code-pane rounded-xl flex flex-col overflow-hidden">
-          <div class="px-4 py-2 flex items-center justify-between text-[0.6rem] md:text-xs uppercase tracking-wide font-semibold text-indigo-50/70 dark:text-slate-200 border-b border-white/10">Kode GitHub</div>
-          <pre class="flex-1 overflow-auto p-4 text-[0.6rem] md:text-xs text-indigo-50/90 dark:text-slate-200 scrollbar-thin"><code id="autoCodeGh"></code></pre>
+        
+        <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+          <div class="px-4 py-2 bg-gray-50 dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300">
+            Kode GitHub
+          </div>
+          <pre class="overflow-auto p-4 text-sm bg-gray-50 dark:bg-gray-900 max-h-96">
+            <code id="autoCodeGh"></code>
+          </pre>
         </div>
       </div>
     </div>
   </div>
+  
   <script src="{{ url_for('static', filename='js/auto_search.js') }}"></script>
   <script>
-    (function(){
-      const toggle = document.getElementById('themeToggle');
-      const body = document.body; const stored = localStorage.getItem('ct-theme'); if(stored==='dark') body.classList.add('dark');
-      const upd=()=> toggle.textContent = body.classList.contains('dark')? '☀️ Light':'🌙 Dark'; upd();
-      toggle.addEventListener('click', ()=> { body.classList.toggle('dark'); localStorage.setItem('ct-theme', body.classList.contains('dark')?'dark':'light'); upd(); });
-      window.addEventListener('pointermove', (e)=>{ const x=(e.clientX/window.innerWidth)*100; const y=(e.clientY/window.innerHeight)*100; body.style.setProperty('--pointer-x', x+'%'); body.style.setProperty('--pointer-y', y+'%'); }, {passive:true});
-    })();
+    // Simple theme toggle
+    const themeToggle = document.getElementById('themeToggle');
+    const body = document.body;
+    
+    // Load saved theme
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+      body.classList.add('dark');
+      themeToggle.textContent = '☀️';
+    }
+    
+    // Theme toggle functionality
+    themeToggle.addEventListener('click', () => {
+      body.classList.toggle('dark');
+      const isDark = body.classList.contains('dark');
+      themeToggle.textContent = isDark ? '☀️' : '🌙';
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    });
   </script>
 </body>
 </html>
