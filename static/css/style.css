@@ -381,3 +381,83 @@ code {
     grid-template-columns: repeat(3, 1fr);
   }
 }
+
+/* Preview Modal Styles */
+.preview-modal {
+  backdrop-filter: blur(4px);
+}
+
+.access-summary {
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+}
+
+.dark .access-summary {
+  background-color: #374151;
+  border-color: #4b5563;
+}
+
+.access-summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.access-summary-item:last-child {
+  border-bottom: none;
+}
+
+.dark .access-summary-item {
+  border-color: #4b5563;
+}
+
+.repo-status-badge {
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.status-accessible {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.status-no-access {
+  background-color: #fecaca;
+  color: #991b1b;
+}
+
+.status-not-found {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.status-private {
+  background-color: #e5e7eb;
+  color: #374151;
+}
+
+.dark .status-accessible {
+  background-color: #166534;
+  color: #dcfce7;
+}
+
+.dark .status-no-access {
+  background-color: #991b1b;
+  color: #fecaca;
+}
+
+.dark .status-not-found {
+  background-color: #92400e;
+  color: #fef3c7;
+}
+
+.dark .status-private {
+  background-color: #4b5563;
+  color: #e5e7eb;
+}

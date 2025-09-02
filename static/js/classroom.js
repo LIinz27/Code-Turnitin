@@ -574,6 +574,204 @@ function showDetailedStatus(message, detailsHtml, type = 'info') {
     }
 }
 
+async function previewRepositories() {
+    if (!currentAssignment) {
+        showStatus('Please select an assignment first', 'error');
+        return;
+    }
+    
+    if (!currentClassroom || !currentClassroom.id) {
+        showStatus('Classroom information not available', 'error');
+        return;
+    }
+    
+    showLoading('preview');
+    
+    try {
+        const response = await fetch(`/api/classroom/${currentClassroom.id}/assignments/${currentAssignment.id}/preview`);
+        const data = await response.json();
+        
+        if (data.success) {
+            showPreviewModal(data);
+        } else {
+            showStatus(`Preview failed: ${data.error}`, 'error');
+        }
+    } catch (error) {
+        console.error('Error previewing repositories:', error);
+        showStatus(`Preview failed: ${error.message}`, 'error');
+    } finally {
+        hideLoading('preview');
+    }
+}
+
+function showPreviewModal(previewData) {
+    const modal = document.getElementById('preview-modal');
+    const content = document.getElementById('preview-content');
+    
+    if (!modal || !content) {
+        // Create modal if it doesn't exist
+        createPreviewModal();
+        return showPreviewModal(previewData);
+    }
+    
+    const assignment = previewData.assignment;
+    const repositories = previewData.repositories;
+    const accessSummary = previewData.access_summary;
+    
+    let accessSummaryHtml = '';
+    if (accessSummary.total > 0) {
+        // Calculate accessible repositories (public + private_accessible)
+        const accessible = (accessSummary.public || 0) + (accessSummary.private_accessible || 0);
+        const privateNoAccess = accessSummary.private_no_access || 0;
+        const notFound = accessSummary.not_found || 0;
+        const total = accessSummary.total || 0;
+        
+        accessSummaryHtml = `
+            <div class="access-summary p-4 rounded-lg mb-4">
+                <h4 class="font-semibold text-gray-700 dark:text-gray-300 mb-3">Access Summary</h4>
+                <div class="space-y-2">
+                    <div class="access-summary-item">
+                        <span class="text-gray-600 dark:text-gray-400">Total repositories:</span>
+                        <span class="font-semibold text-gray-900 dark:text-white">${total}</span>
+                    </div>
+                    <div class="access-summary-item">
+                        <span class="text-gray-600 dark:text-gray-400">Accessible:</span>
+                        <span class="font-semibold text-green-600">${accessible}</span>
+                    </div>
+                    <div class="access-summary-item">
+                        <span class="text-gray-600 dark:text-gray-400">Private (no access):</span>
+                        <span class="font-semibold text-red-600">${privateNoAccess}</span>
+                    </div>
+                    <div class="access-summary-item">
+                        <span class="text-gray-600 dark:text-gray-400">Not found:</span>
+                        <span class="font-semibold text-yellow-600">${notFound}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    let repositoriesHtml = '';
+    if (repositories.length > 0) {
+        repositoriesHtml = repositories.map(repo => {
+            const statusColor = getAccessStatusColor(repo.accessibility.status);
+            const studentsList = repo.students ? repo.students.join(', ') : 'Unknown';
+            
+            return `
+                <div class="border rounded-lg p-4 mb-3">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <h4 class="font-semibold text-gray-900">
+                                <a href="${repo.html_url}" target="_blank" class="text-blue-600 hover:text-blue-800">
+                                    ${repo.full_name}
+                                </a>
+                            </h4>
+                            <p class="text-sm text-gray-600 mt-1">Students: ${studentsList}</p>
+                            <p class="text-sm text-gray-500 mt-1">Estimated files: ${repo.estimated_files}</p>
+                        </div>
+                        <div class="ml-4 flex flex-col items-end gap-1">
+                            <span class="${statusColor}">
+                                ${getAccessStatusText(repo.accessibility.status)}
+                            </span>
+                            ${repo.private ? '<span class="repo-status-badge status-private">Private</span>' : '<span class="repo-status-badge status-accessible">Public</span>'}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    } else {
+        repositoriesHtml = '<p class="text-gray-500 text-center py-8">No repositories found for this assignment.</p>';
+    }
+    
+    content.innerHTML = `
+        <div class="mb-6">
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Preview: ${assignment.title}</h3>
+            <p class="text-gray-600">Assignment Type: ${assignment.type}</p>
+            <p class="text-gray-600">Discovery Method: ${previewData.method_used}</p>
+            <p class="text-gray-600">Total Estimated Files: ${previewData.total_estimated_files}</p>
+        </div>
+        
+        ${accessSummaryHtml}
+        
+        <div class="mb-6">
+            <h4 class="font-semibold text-gray-700 mb-3">Repositories (${repositories.length})</h4>
+            <div class="max-h-96 overflow-y-auto">
+                ${repositoriesHtml}
+            </div>
+        </div>
+        
+        <div class="flex justify-end space-x-3">
+            <button onclick="closePreviewModal()" class="px-4 py-2 text-gray-600 bg-gray-200 rounded-lg hover:bg-gray-300">
+                Cancel
+            </button>
+            <button onclick="proceedWithDownload()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                Proceed with Download
+            </button>
+        </div>
+    `;
+    
+    modal.classList.remove('hidden');
+}
+
+function getAccessStatusColor(status) {
+    switch (status) {
+        case 'public':
+        case 'private_accessible':
+            return 'repo-status-badge status-accessible';
+        case 'private_no_access':
+            return 'repo-status-badge status-no-access';
+        case 'not_found':
+            return 'repo-status-badge status-not-found';
+        default:
+            return 'repo-status-badge status-private';
+    }
+}
+
+function getAccessStatusText(status) {
+    switch (status) {
+        case 'public': return 'Public';
+        case 'private_accessible': return 'Accessible';
+        case 'private_no_access': return 'No Access';
+        case 'not_found': return 'Not Found';
+        default: return 'Unknown';
+    }
+}
+
+function createPreviewModal() {
+    const modalHtml = `
+        <div id="preview-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden">
+            <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-screen overflow-hidden">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold text-gray-900">Repository Preview</h2>
+                        <button onclick="closePreviewModal()" class="text-gray-400 hover:text-gray-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div id="preview-content">
+                        <!-- Content will be populated by showPreviewModal -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+function closePreviewModal() {
+    const modal = document.getElementById('preview-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+function proceedWithDownload() {
+    closePreviewModal();
+    downloadAndAnalyze();
+}
+
 async function downloadAndAnalyze() {
     if (!currentAssignment) {
         showStatus('Please select an assignment first', 'error');

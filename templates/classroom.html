@@ -83,7 +83,11 @@
             </div>
             
             <div class="mt-6 flex justify-end">
-                <div id="download-controls" class="hidden">
+                <div id="download-controls" class="hidden flex gap-3">
+                    <button class="btn-secondary" id="preview-repositories" onclick="previewRepositories()">
+                        <span id="preview-text">Preview Repositories</span>
+                        <span id="preview-loading" class="loading hidden">Loading...</span>
+                    </button>
                     <button class="btn-primary" id="download-assignment" onclick="downloadAndAnalyze()">
                         <span id="download-text">Download & Analyze</span>
                         <span id="download-loading" class="loading hidden">Loading...</span>

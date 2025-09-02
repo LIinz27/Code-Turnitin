@@ -315,6 +315,180 @@ class GitHubClassroom:
         print(f"\n📊 Download selesai. Total file downloaded: {len(downloaded_files)}")
         return downloaded_files
     
+    def preview_assignment_repositories(self, assignment_id):
+        """
+        Preview repositories yang akan didownload tanpa melakukan download
+        """
+        print(f"🔍 Preview repositories for assignment: {assignment_id}")
+        
+        preview_data = {
+            'repositories': [],
+            'estimated_files': 0,
+            'access_summary': {
+                'public': 0,
+                'private_accessible': 0,
+                'private_no_access': 0,
+                'not_found': 0,
+                'total': 0
+            },
+            'method_used': 'unknown'
+        }
+        
+        # Method 1: Try GitHub Classroom accepted assignments API
+        try:
+            accepted_assignments = self.get_accepted_assignments(assignment_id)
+            if accepted_assignments:
+                preview_data['method_used'] = 'github_classroom_api'
+                
+                for assignment in accepted_assignments:
+                    repository = assignment.get('repository', {})
+                    repo_full_name = repository.get('full_name')
+                    students = assignment.get('students', [])
+                    
+                    if repo_full_name:
+                        # Check accessibility
+                        accessibility = self._check_repository_accessibility(repo_full_name)
+                        
+                        # Estimate file count (simplified)
+                        estimated_files = self._estimate_repository_files(repo_full_name)
+                        
+                        repo_info = {
+                            'full_name': repo_full_name,
+                            'html_url': repository.get('html_url'),
+                            'students': [s.get('login', 'unknown') for s in students],
+                            'accessibility': accessibility,
+                            'estimated_files': estimated_files,
+                            'private': repository.get('private', False)
+                        }
+                        
+                        preview_data['repositories'].append(repo_info)
+                        preview_data['estimated_files'] += estimated_files
+                        
+                        # Update access summary
+                        status = accessibility.get('status', 'unknown')
+                        if status in preview_data['access_summary']:
+                            preview_data['access_summary'][status] += 1
+                        else:
+                            print(f"⚠️ Unknown status '{status}' for repository {repo_full_name}")
+                        preview_data['access_summary']['total'] += 1
+                
+                if preview_data['repositories']:
+                    return preview_data
+        
+        except Exception as e:
+            print(f"⚠️ Error getting accepted assignments: {e}")
+        
+        # Method 2: Fallback to repository search
+        print("🔄 Using fallback repository search method...")
+        preview_data['method_used'] = 'repository_search'
+        
+        # Get assignment info for search
+        classroom_id = getattr(self, 'current_classroom_id', None)
+        assignments = self.get_classroom_assignments(classroom_id) if classroom_id else []
+        target_assignment = None
+        
+        for assignment in assignments:
+            if assignment.get('id') == int(assignment_id):
+                target_assignment = assignment
+                break
+        
+        if target_assignment:
+            # Preview repositories that would be found by search
+            search_repos = self._preview_search_repositories(target_assignment)
+            preview_data['repositories'] = search_repos
+            preview_data['estimated_files'] = sum(repo.get('estimated_files', 0) for repo in search_repos)
+            
+            # Update access summary
+            for repo in search_repos:
+                status = repo.get('accessibility', {}).get('status', 'unknown')
+                if status in preview_data['access_summary']:
+                    preview_data['access_summary'][status] += 1
+                else:
+                    print(f"⚠️ Unknown status '{status}' for search repository {repo.get('full_name')}")
+                preview_data['access_summary']['total'] += 1
+        
+        return preview_data
+    
+    def _estimate_repository_files(self, repo_full_name):
+        """
+        Estimate number of code files in repository (quick check)
+        """
+        try:
+            # Quick check using repository contents
+            contents = self._make_request(f'repos/{repo_full_name}/contents')
+            if contents:
+                # Count files with code extensions
+                code_extensions = ['.js', '.py', '.java', '.c', '.cpp', '.h', '.cs', '.php', '.rb', '.go']
+                count = 0
+                for item in contents:
+                    if item.get('type') == 'file':
+                        name = item.get('name', '')
+                        if any(name.endswith(ext) for ext in code_extensions):
+                            count += 1
+                return max(count, 1)  # At least 1 if repository has files
+            return 0
+        except:
+            return 1  # Default estimate
+    
+    def _preview_search_repositories(self, assignment):
+        """
+        Preview repositories that would be found by search method
+        """
+        repos = []
+        assignment_title = assignment.get('title', '').lower()
+        assignment_slug = assignment.get('slug', '').lower()
+        classroom_id = getattr(self, 'current_classroom_id', None)
+        
+        if classroom_id:
+            classroom_details = self.get_classroom_details(classroom_id)
+            if classroom_details:
+                organization = classroom_details.get('organization', {})
+                org_login = organization.get('login')
+                
+                if org_login:
+                    # Get organization repositories
+                    org_repos = self._make_request(f'orgs/{org_login}/repos', params={'per_page': 100})
+                    
+                    if org_repos:
+                        # Apply same matching logic as in actual search
+                        assignment_title_clean = assignment_title.replace(' ', '-').replace('_', '-')
+                        assignment_slug_clean = assignment_slug.replace(' ', '-').replace('_', '-')
+                        
+                        exact_patterns = [
+                            assignment_title_clean,
+                            assignment_slug_clean,
+                            assignment_title.replace(' ', ''),
+                            assignment_slug.replace(' ', '')
+                        ]
+                        exact_patterns = [p for p in exact_patterns if p and len(p) > 3]
+                        
+                        for repo in org_repos:
+                            repo_name = repo.get('name', '').lower()
+                            repo_full_name = repo.get('full_name')
+                            
+                            # Apply matching logic
+                            exact_match = any(pattern in repo_name for pattern in exact_patterns)
+                            skip_patterns = ['template', 'starter', 'example', 'demo', '.github']
+                            should_skip = any(pattern in repo_name for pattern in skip_patterns)
+                            
+                            if exact_match and not should_skip:
+                                accessibility = self._check_repository_accessibility(repo_full_name)
+                                estimated_files = self._estimate_repository_files(repo_full_name)
+                                
+                                repo_info = {
+                                    'full_name': repo_full_name,
+                                    'html_url': repo.get('html_url'),
+                                    'name': repo.get('name'),
+                                    'description': repo.get('description'),
+                                    'accessibility': accessibility,
+                                    'estimated_files': estimated_files,
+                                    'private': repo.get('private', False),
+                                    'match_type': 'exact'
+                                }
+                                repos.append(repo_info)
+        
+        return repos
+
     def _download_from_repository_id(self, repo_id, save_dir, allowed_extensions):
         """
         Download files dari repository berdasarkan ID (untuk repository-based assignments)
@@ -370,10 +544,48 @@ class GitHubClassroom:
         """
         assignment_title = assignment.get('title', '').lower()
         assignment_slug = assignment.get('slug', '').lower()
+        assignment_id = assignment.get('id')
         classroom_id = getattr(self, 'current_classroom_id', None)
         
         print(f"🔍 Searching repositories for assignment: {assignment.get('title')}")
         
+        # Method 1: Try to get accepted assignments first (most accurate)
+        if assignment_id:
+            print(f"🔍 Getting accepted assignments for ID: {assignment_id}")
+            try:
+                accepted_assignments = self.get_accepted_assignments(assignment_id)
+                if accepted_assignments:
+                    print(f"✅ Found {len(accepted_assignments)} accepted assignments")
+                    
+                    downloaded_files = []
+                    for accepted in accepted_assignments[:10]:  # Limit to first 10
+                        if 'repository' in accepted:
+                            repo_info = accepted['repository']
+                            repo_url = repo_info.get('html_url')
+                            repo_full_name = repo_info.get('full_name')
+                            student_name = accepted.get('students', [{}])[0].get('login', 'unknown') if accepted.get('students') else 'unknown'
+                            
+                            if repo_url:
+                                print(f"📥 Downloading from accepted assignment: {repo_full_name} (student: {student_name})")
+                                try:
+                                    repo_files = self._download_repo_files(repo_url, save_dir, student_name, allowed_extensions)
+                                    downloaded_files.extend(repo_files)
+                                    print(f"    ✅ Downloaded {len(repo_files)} files from {student_name}")
+                                except Exception as e:
+                                    print(f"    ❌ Error downloading from {student_name}: {e}")
+                                    continue
+                    
+                    if downloaded_files:
+                        print(f"📊 Successfully downloaded {len(downloaded_files)} files from accepted assignments")
+                        return downloaded_files
+                    else:
+                        print("⚠️ No files downloaded from accepted assignments, trying fallback method...")
+                        
+            except Exception as e:
+                print(f"❌ Error getting accepted assignments: {e}")
+                print("🔄 Falling back to organization search...")
+        
+        # Method 2: Fallback - search in organization (less accurate)
         # Ambil detail classroom untuk mendapatkan organization
         if classroom_id:
             classroom_details = self.get_classroom_details(classroom_id)
@@ -404,37 +616,73 @@ class GitHubClassroom:
         downloaded_files = []
         found_repos = []
         
+        # Normalize assignment title and slug for better matching
+        assignment_title_clean = assignment_title.replace(' ', '-').replace('_', '-')
+        assignment_slug_clean = assignment_slug.replace(' ', '-').replace('_', '-')
+        
+        # More specific matching patterns
+        exact_patterns = [
+            assignment_title_clean,
+            assignment_slug_clean,
+            assignment_title.replace(' ', ''),
+            assignment_slug.replace(' ', '')
+        ]
+        
+        partial_patterns = [
+            assignment_title.split()[0] if assignment_title.split() else '',  # First word
+            assignment_slug.split('-')[0] if '-' in assignment_slug else assignment_slug
+        ]
+        
+        # Filter patterns that are too generic
+        exact_patterns = [p for p in exact_patterns if p and len(p) > 3]
+        partial_patterns = [p for p in partial_patterns if p and len(p) > 3]
+        
         # Cari repository yang cocok dengan assignment
         for repo in org_repos:
             repo_name = repo.get('name', '').lower()
             repo_desc = (repo.get('description') or '').lower()
             
-            # Check if repository name matches assignment
-            name_match = any([
-                assignment_title in repo_name,
-                assignment_slug in repo_name,
-                'final' in repo_name and 'tugas' in assignment_title,
-                'tugas' in repo_name and 'final' in assignment_title,
-                repo_name in assignment_title,
-                repo_name in assignment_slug
-            ])
+            # Exact match (highest priority)
+            exact_match = any(pattern in repo_name for pattern in exact_patterns)
             
-            # Check description match
-            desc_match = any([
-                assignment_title in repo_desc,
-                assignment_slug in repo_desc
-            ]) if repo_desc else False
+            # Partial match (lower priority)
+            partial_match = any(pattern in repo_name for pattern in partial_patterns) if partial_patterns else False
             
-            if name_match or desc_match:
-                found_repos.append(repo)
-                print(f"✅ Found potential assignment repo: {repo.get('full_name')}")
+            # GitHub Classroom pattern match
+            classroom_pattern = (
+                'github classroom' in repo_desc or
+                'created by github classroom' in repo_desc
+            )
+            
+            # Skip repositories that are clearly not assignment submissions
+            skip_patterns = ['template', 'starter', 'example', 'demo', '.github']
+            should_skip = any(pattern in repo_name for pattern in skip_patterns)
+            
+            if (exact_match or (partial_match and classroom_pattern)) and not should_skip:
+                found_repos.append({
+                    'repo': repo,
+                    'match_type': 'exact' if exact_match else 'partial',
+                    'priority': 100 if exact_match else 50
+                })
+                print(f"✅ Found potential assignment repo: {repo.get('full_name')} ({'exact' if exact_match else 'partial'} match)")
+        
+        # Sort by priority (exact matches first)
+        found_repos.sort(key=lambda x: x['priority'], reverse=True)
         
         if not found_repos:
             print(f"❌ No repositories found matching assignment '{assignment_title}'")
+            print(f"   Searched for patterns: {exact_patterns}")
             return []
         
-        # Download dari semua repository yang ditemukan
-        for repo in found_repos[:5]:  # Limit to first 5 matches
+        # Limit to most relevant matches
+        max_repos = 10 if found_repos[0]['match_type'] == 'exact' else 5
+        selected_repos = found_repos[:max_repos]
+        
+        print(f"📥 Found {len(selected_repos)} matching repositories, downloading...")
+        
+        # Download dari repository yang ditemukan
+        for repo_info in selected_repos:
+            repo = repo_info['repo']
             repo_url = repo.get('html_url')
             repo_full_name = repo.get('full_name')
             

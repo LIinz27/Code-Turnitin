@@ -454,6 +454,54 @@ def api_classroom_assignments(classroom_id):
             "error": str(e)
         }), 500
 
+@app.route('/api/classroom/<int:classroom_id>/assignments/<int:assignment_id>/preview', methods=['GET'])
+def preview_assignment_repositories(classroom_id, assignment_id):
+    """
+    Preview repositories yang akan didownload untuk assignment
+    """
+    try:
+        classroom = GitHubClassroom()
+        classroom.current_classroom_id = classroom_id
+        
+        # Get assignment details
+        assignments = classroom.get_classroom_assignments(classroom_id)
+        target_assignment = None
+        
+        for assignment in assignments:
+            if assignment.get('id') == assignment_id:
+                target_assignment = assignment
+                break
+        
+        if not target_assignment:
+            return jsonify({
+                "success": False,
+                "error": "Assignment tidak ditemukan"
+            }), 404
+        
+        # Preview repositories that would be downloaded
+        preview_data = classroom.preview_assignment_repositories(assignment_id)
+        
+        return jsonify({
+            "success": True,
+            "assignment": {
+                "id": assignment_id,
+                "title": target_assignment.get('title', 'Unknown'),
+                "type": target_assignment.get('type', 'Unknown')
+            },
+            "repositories": preview_data.get('repositories', []),
+            "total_repositories": len(preview_data.get('repositories', [])),
+            "total_estimated_files": preview_data.get('estimated_files', 0),
+            "access_summary": preview_data.get('access_summary', {}),
+            "method_used": preview_data.get('method_used', 'unknown')
+        })
+        
+    except Exception as e:
+        print(f"Error in preview_assignment_repositories: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
 @app.route('/api/classroom/download', methods=['POST'])
 def api_classroom_download():
     """API endpoint untuk download assignment repositories"""
