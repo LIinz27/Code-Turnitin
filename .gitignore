@@ -3,6 +3,7 @@ data/mahasiswa/
 
 # Ignore downloaded GitHub comparison files
 data/github/
+data/classroom/
 
 # Ignore Python virtual environment directory
 .venv/

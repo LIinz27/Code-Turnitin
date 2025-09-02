@@ -18,6 +18,7 @@
             <div class="flex justify-center space-x-4 mb-8">
                 <a href="/" class="btn-secondary">← Beranda</a>
                 <a href="/auto-search" class="btn-secondary">🔍 Auto Search</a>
+                <a href="/test-repos" class="btn-secondary">🧪 Test Repos</a>
                 <button id="themeToggle" class="btn-secondary">🌙</button>
             </div>
         </header>
@@ -44,17 +45,28 @@
                     </div>
                     <div class="flex flex-wrap gap-3 pt-2">
                         <button class="btn-primary" onclick="loadClassroom()">
-                            <span class="loading-classroom hidden spinner mr-2"></span>
-                            Load Classroom
+                            <span id="load-classroom-text">Load Classroom</span>
+                            <span id="load-classroom-loading" class="loading hidden">Loading...</span>
                         </button>
+                        <button class="btn-secondary" onclick="autoDiscoverClassrooms()">
+                            <span id="auto-discover-text">Auto Discover</span>
+                            <span id="auto-discover-loading" class="loading hidden">Loading...</span>
+                        </button>
+                        <button class="btn-secondary" onclick="checkTokenInfo()">Token Info</button>
+                        <button class="btn-secondary" onclick="testFunction()">Test JS</button>
+                        <button class="btn-secondary" onclick="testFetch()">Test Fetch</button>
                     </div>
+                    
+                    <!-- Status Message -->
+                    <div id="status-message" class="hidden mt-4 p-3 rounded-md"></div>
                 </div>
                 
-                <div class="classroom-info hidden bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                <div id="classroom-info" class="classroom-info hidden bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
                     <h3 class="font-semibold text-gray-800 dark:text-white mb-2" id="classroom-name">Nama Classroom</h3>
                     <p class="text-sm text-gray-600 dark:text-gray-300 mb-2" id="classroom-description">Deskripsi classroom akan muncul di sini</p>
                     <div class="text-xs text-gray-500 dark:text-gray-400">
                         <span id="classroom-assignment-count">0 assignments</span>
+                        <span id="assignmentCount" class="hidden badge">0 items</span>
                     </div>
                 </div>
             </div>
@@ -71,9 +83,12 @@
             </div>
             
             <div class="mt-6 flex justify-end">
-                <button class="btn-primary hidden" id="download-assignment" onclick="downloadSelectedAssignment()">
-                    Download & Analyze
-                </button>
+                <div id="download-controls" class="hidden">
+                    <button class="btn-primary" id="download-assignment" onclick="downloadAndAnalyze()">
+                        <span id="download-text">Download & Analyze</span>
+                        <span id="download-loading" class="loading hidden">Loading...</span>
+                    </button>
+                </div>
             </div>
         </section>
 
@@ -86,13 +101,13 @@
                     <span class="text-sm text-gray-600 dark:text-gray-300">Progress</span>
                     <span id="progress-percent" class="text-sm font-medium text-gray-800 dark:text-white">0%</span>
                 </div>
-                <div class="progress-bar">
+                <div id="progress-shell" class="progress-bar" style="display: none;">
                     <div id="progress-fill" class="progress-fill"></div>
                 </div>
                 <p id="progress-text" class="text-sm text-gray-600 dark:text-gray-300">Preparing download...</p>
             </div>
             
-            <div class="status-message mt-4" id="status-message"></div>
+            <div class="status-message mt-4" id="progress-status"></div>
         </section>
 
         <!-- Results Section -->
@@ -121,6 +136,8 @@
                     <div class="flex flex-wrap gap-2">
                         <button class="btn-outline" onclick="runSimilarityCheck()">Run Similarity Check</button>
                         <button class="btn-outline" onclick="exportResults()">Export Results</button>
+                        <button id="quick-sim-btn" class="btn-primary" style="display: none;" onclick="runSimilarityCheck()">Quick Similarity</button>
+                        <button id="view-results-btn" class="btn-secondary" style="display: none;" onclick="viewAnalysisResults()">View Results</button>
                     </div>
                 </div>
             </div>
@@ -129,6 +146,16 @@
 
     <script src="/static/js/classroom.js"></script>
     <script>
+        // Add debugging
+        console.log('HTML script loaded');
+        
+        // Test if loadClassroom function exists
+        if (typeof loadClassroom !== 'undefined') {
+            console.log('loadClassroom function is available');
+        } else {
+            console.log('ERROR: loadClassroom function not found!');
+        }
+        
         // Simple theme toggle
         const themeToggle = document.getElementById('themeToggle');
         const body = document.body;

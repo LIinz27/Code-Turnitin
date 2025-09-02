@@ -104,6 +104,10 @@ def auto_search_page():
 def classroom_page():
     return render_template('classroom.html')
 
+@app.route('/test-repos')
+def test_repos_page():
+    return render_template('test_repos.html')
+
 @app.route('/static/<path:filename>')
 def serve_static(filename):
     return send_from_directory('static', filename)
@@ -376,9 +380,14 @@ def api_classroom_list():
 @app.route('/api/classroom/load', methods=['POST'])
 def api_classroom_load():
     """API endpoint untuk load classroom berdasarkan URL atau ID"""
+    print("DEBUG: /api/classroom/load endpoint called")
+    
     try:
         data = request.get_json()
+        print(f"DEBUG: Request data: {data}")
+        
         classroom_url = data.get('classroom_url', '').strip()
+        print(f"DEBUG: Classroom URL: {classroom_url}")
         
         if not classroom_url:
             return jsonify({
@@ -387,30 +396,39 @@ def api_classroom_load():
             }), 400
         
         classroom = GitHubClassroom()
+        print("DEBUG: GitHubClassroom instance created")
         
         # Extract classroom ID dari URL atau gunakan ID langsung
         classroom_id = classroom.extract_classroom_id(classroom_url)
+        print(f"DEBUG: Extracted classroom ID: {classroom_id}")
+        
         if not classroom_id:
             return jsonify({
                 "success": False,
-                "error": "Format classroom URL atau ID tidak valid"
+                "error": "Format classroom URL atau ID tidak valid, atau classroom tidak ditemukan"
             }), 400
         
-        # Ambil detail classroom
+        # Ambil detail classroom menggunakan ID yang benar
+        print(f"DEBUG: Getting classroom details for ID: {classroom_id}")
         classroom_details = classroom.get_classroom_details(classroom_id)
+        print(f"DEBUG: Classroom details: {bool(classroom_details)}")
+        
         if not classroom_details:
             return jsonify({
                 "success": False,
                 "error": f"Classroom dengan ID {classroom_id} tidak ditemukan atau tidak dapat diakses"
             }), 404
         
+        print("DEBUG: Returning success response")
         return jsonify({
             "success": True,
             "classroom": classroom_details
         })
         
     except Exception as e:
-        print(f"Error in /api/classroom/load: {e}")
+        print(f"ERROR in /api/classroom/load: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             "success": False,
             "error": str(e)
@@ -442,33 +460,134 @@ def api_classroom_download():
     try:
         data = request.get_json()
         assignment_id = data.get('assignment_id')
+        classroom_id = data.get('classroom_id')
         
         if not assignment_id:
             return jsonify({
                 "success": False,
                 "error": "Assignment ID tidak boleh kosong"
             }), 400
+
+        if not classroom_id:
+            # Untuk kompatibilitas lama, beri peringatan dan lanjut tapi kemungkinan gagal menemukan repo
+            print("WARNING: classroom_id tidak dikirim. Tambahkan classroom_id di request agar download lebih akurat.")
         
         # Setup direktori download
         save_dir = os.path.join('data', 'classroom')
         os.makedirs(save_dir, exist_ok=True)
         
         classroom = GitHubClassroom()
+        # Simpan classroom_id yang benar untuk membantu pencarian repository assignment
+        if classroom_id:
+            classroom.current_classroom_id = classroom_id
+        else:
+            # fallback: coba gunakan nilai sebelumnya jika pernah diset
+            if not hasattr(classroom, 'current_classroom_id'):
+                classroom.current_classroom_id = None
+        
+        print(f"DEBUG: Download request assignment_id={assignment_id} classroom_id={getattr(classroom,'current_classroom_id', None)}")
+        
         downloaded_files = classroom.download_classroom_assignment_repos(
             assignment_id, 
             save_dir
         )
         
-        return jsonify({
+        # Provide more detailed response
+        response_data = {
             "success": True,
             "files": downloaded_files,
             "count": len(downloaded_files),
             "assignment_id": assignment_id,
             "save_directory": save_dir
-        })
+        }
+        
+        # Add warnings if no files were downloaded
+        if len(downloaded_files) == 0:
+            response_data["warning"] = "No files were downloaded. This could be due to:"
+            response_data["possible_reasons"] = [
+                "Repository is private and requires access permission",
+                "No student submissions found",
+                "Repository contains no supported file types",
+                "Network or authentication issues",
+                "Assignment repository not found in classroom (pastikan classroom_id benar)"
+            ]
+            response_data["suggestions"] = [
+                "Check if you have access to the assignment repository",
+                "Verify that students have submitted their work",
+                "Contact repository owner for access permission if needed",
+                "Pastikan frontend mengirim classroom_id bersama assignment_id"
+            ]
+        
+        return jsonify(response_data)
         
     except Exception as e:
         print(f"Error in /api/classroom/download: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "possible_causes": [
+                "Repository access permission denied",
+                "Assignment not found",
+                "Network connectivity issues",
+                "GitHub API rate limit exceeded"
+            ]
+        }), 500
+
+@app.route('/api/classroom/check-access', methods=['POST'])
+def api_classroom_check_access():
+    """API endpoint untuk mengecek akses ke repository"""
+    try:
+        data = request.get_json()
+        repo_full_name = data.get('repository')
+        
+        if not repo_full_name:
+            return jsonify({
+                "success": False,
+                "error": "Repository name is required"
+            }), 400
+        
+        classroom = GitHubClassroom()
+        
+        # Check token permissions
+        token_info = classroom.check_token_permissions()
+        
+        # Check repository accessibility
+        accessibility = classroom._check_repository_accessibility(repo_full_name)
+        
+        # Get access guide if needed
+        access_guide = None
+        if accessibility['status'] in ['private_no_access', 'not_found']:
+            access_guide = classroom.get_private_repo_access_guide(repo_full_name)
+        
+        return jsonify({
+            "success": True,
+            "repository": repo_full_name,
+            "accessibility": accessibility,
+            "token_info": token_info,
+            "access_guide": access_guide
+        })
+        
+    except Exception as e:
+        print(f"Error in /api/classroom/check-access: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+@app.route('/api/classroom/token-info', methods=['GET'])
+def api_classroom_token_info():
+    """API endpoint untuk mengecek informasi token GitHub"""
+    try:
+        classroom = GitHubClassroom()
+        token_info = classroom.check_token_permissions()
+        
+        return jsonify({
+            "success": True,
+            "token_info": token_info
+        })
+        
+    except Exception as e:
+        print(f"Error in /api/classroom/token-info: {e}")
         return jsonify({
             "success": False,
             "error": str(e)
@@ -505,6 +624,185 @@ def api_similarity_analyze():
 
 # =============================================================================
 # End of GitHub Classroom API Endpoints
+# =============================================================================
+
+# =============================================================================
+# Test Repository API Endpoints
+# =============================================================================
+
+@app.route('/api/test-repos/detailed-check', methods=['POST'])
+def api_test_repos_detailed_check():
+    """API endpoint untuk test akses repository dengan detail lengkap"""
+    try:
+        data = request.get_json()
+        repository = data.get('repository')
+        assignment_id = data.get('assignment_id')
+        classroom_id = data.get('classroom_id')
+        
+        if not repository:
+            return jsonify({
+                "success": False,
+                "error": "Repository name is required"
+            }), 400
+        
+        classroom = GitHubClassroom()
+        
+        # Check token permissions
+        token_info = classroom.check_token_permissions()
+        
+        # Check repository accessibility
+        accessibility = classroom._check_repository_accessibility(repository)
+        
+        # Try to get repository files if accessible
+        files = []
+        if accessibility['status'] in ['public', 'private_accessible']:
+            try:
+                # Ambil daftar files dari repository
+                response = classroom._make_request(f'repos/{repository}/contents')
+                if response and isinstance(response, list):
+                    files = [item.get('name', 'Unknown') for item in response if item.get('type') == 'file']
+                elif response and response.get('type') == 'file':
+                    files = [response.get('name', 'Unknown')]
+                
+                # Jika root kosong, coba cari di folder umum
+                if not files:
+                    common_folders = ['src', 'app', 'public', 'assets', 'js', 'css']
+                    for folder in common_folders:
+                        folder_response = classroom._make_request(f'repos/{repository}/contents/{folder}')
+                        if folder_response and isinstance(folder_response, list):
+                            folder_files = [f"{folder}/{item.get('name', 'Unknown')}" for item in folder_response if item.get('type') == 'file']
+                            files.extend(folder_files)
+                            if len(files) >= 10:  # Limit to avoid too many files
+                                break
+                        
+            except Exception as e:
+                print(f"Error getting files for {repository}: {e}")
+                accessibility['details'] = f"Could not retrieve files: {str(e)}"
+        
+        # Get forks information if it's likely a template repository
+        forks_info = {}
+        try:
+            forks_response = classroom._make_request(f'repos/{repository}/forks', params={'per_page': 10})
+            if forks_response:
+                forks_info = {
+                    'count': len(forks_response),
+                    'forks': [
+                        {
+                            'owner': fork.get('owner', {}).get('login', 'Unknown'),
+                            'full_name': fork.get('full_name', 'Unknown'),
+                            'private': fork.get('private', False)
+                        }
+                        for fork in forks_response[:5]  # Limit to first 5 forks
+                    ]
+                }
+        except Exception as e:
+            print(f"Error getting forks for {repository}: {e}")
+        
+        return jsonify({
+            "success": True,
+            "repository": repository,
+            "assignment_id": assignment_id,
+            "classroom_id": classroom_id,
+            "accessibility": accessibility,
+            "token_info": token_info,
+            "files": files,
+            "forks_info": forks_info
+        })
+        
+    except Exception as e:
+        print(f"Error in /api/test-repos/detailed-check: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+@app.route('/api/test-repos/test-download', methods=['POST'])
+def api_test_repos_test_download():
+    """API endpoint untuk test download repository"""
+    try:
+        data = request.get_json()
+        assignment_id = data.get('assignment_id')
+        repository = data.get('repository')
+        
+        if not assignment_id:
+            return jsonify({
+                "success": False,
+                "error": "Assignment ID is required"
+            }), 400
+        
+        # Test download menggunakan fungsi yang sama seperti download biasa
+        # tapi hanya menghitung files tanpa menyimpan
+        save_dir = os.path.join('data', 'test_downloads')
+        os.makedirs(save_dir, exist_ok=True)
+        
+        classroom = GitHubClassroom()
+        
+        # Try different approaches to download
+        results = {}
+        
+        # Method 1: Direct repository download
+        if repository:
+            try:
+                repo_url = f"https://github.com/{repository}"
+                print(f"Testing direct download from: {repo_url}")
+                
+                from src.scrapers.github_scraper import scrape_repo_files
+                direct_files = scrape_repo_files(repo_url, save_dir)
+                
+                results['direct_download'] = {
+                    'success': True,
+                    'files_count': len(direct_files),
+                    'files': [f.get('file_name', 'Unknown') for f in direct_files[:10]]  # First 10 files
+                }
+            except Exception as e:
+                results['direct_download'] = {
+                    'success': False,
+                    'error': str(e)
+                }
+        
+        # Method 2: Classroom assignment download
+        try:
+            print(f"Testing classroom assignment download for ID: {assignment_id}")
+            assignment_files = classroom.download_classroom_assignment_repos(assignment_id, save_dir)
+            
+            results['assignment_download'] = {
+                'success': True,
+                'files_count': len(assignment_files),
+                'files': assignment_files[:10] if assignment_files else []
+            }
+        except Exception as e:
+            results['assignment_download'] = {
+                'success': False,
+                'error': str(e)
+            }
+        
+        # Determine overall success
+        total_files = 0
+        if results.get('direct_download', {}).get('success'):
+            total_files += results['direct_download']['files_count']
+        if results.get('assignment_download', {}).get('success'):
+            total_files += results['assignment_download']['files_count']
+        
+        success = total_files > 0
+        
+        return jsonify({
+            "success": success,
+            "assignment_id": assignment_id,
+            "repository": repository,
+            "files_count": total_files,
+            "results": results,
+            "message": f"Found {total_files} files total" if success else "No files could be downloaded"
+        })
+        
+    except Exception as e:
+        print(f"Error in /api/test-repos/test-download: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+# =============================================================================
+# End of Test Repository API Endpoints
 # =============================================================================
 
 # def cleanup_on_shutdown_with_choice():
