@@ -1,6 +1,7 @@
 import os
 import requests
 import json
+import time
 from urllib.parse import urlparse, quote_plus
 from .github_scraper import scrape_repo_files
 
@@ -248,18 +249,63 @@ class GitHubClassroom:
         print(f"Mengambil grades untuk assignment {assignment_id}...")
         return self._make_request(f'assignments/{assignment_id}/grades')
     
-    def download_classroom_assignment_repos(self, assignment_id, save_dir, allowed_extensions=('.js', '.py', '.java', '.c', '.cpp', '.h')):
+    def _create_organized_save_dir(self, base_save_dir, assignment_id):
+        """
+        Membuat struktur folder terorganisir berdasarkan kelas dan nama assignment
+        Returns: organized_save_dir
+        """
+        try:
+            # Ambil detail assignment
+            assignment_details = self.get_assignment_details(assignment_id)
+            if not assignment_details:
+                print("⚠️ Tidak dapat mengambil detail assignment, menggunakan struktur default")
+                return os.path.join(base_save_dir, f"assignment_{assignment_id}")
+            
+            # Ambil nama assignment
+            assignment_title = assignment_details.get('title', f'Assignment_{assignment_id}')
+            assignment_slug = assignment_details.get('slug', assignment_title.lower().replace(' ', '_'))
+            
+            # Bersihkan nama assignment untuk folder
+            safe_assignment_name = "".join(c for c in assignment_title if c.isalnum() or c in (' ', '-', '_')).strip()
+            safe_assignment_name = safe_assignment_name.replace(' ', '_')
+            
+            # Coba ambil informasi classroom
+            classroom_name = "Unknown_Classroom"
+            classroom_id = getattr(self, 'current_classroom_id', None)
+            
+            if classroom_id:
+                classroom_details = self.get_classroom_details(classroom_id)
+                if classroom_details:
+                    classroom_name = classroom_details.get('name', f'Classroom_{classroom_id}')
+                    # Bersihkan nama classroom untuk folder
+                    classroom_name = "".join(c for c in classroom_name if c.isalnum() or c in (' ', '-', '_')).strip()
+                    classroom_name = classroom_name.replace(' ', '_')
+            
+            # Buat struktur folder: base_dir/Classroom_Name/Assignment_Name/
+            organized_dir = os.path.join(base_save_dir, classroom_name, safe_assignment_name)
+            
+            print(f"📁 Struktur folder: {classroom_name}/{safe_assignment_name}")
+            return organized_dir
+            
+        except Exception as e:
+            print(f"⚠️ Error creating organized directory: {e}")
+            return os.path.join(base_save_dir, f"assignment_{assignment_id}")
+
+    def download_classroom_assignment_repos(self, assignment_id, save_dir, allowed_extensions=('.js', '.py', '.java', '.c', '.cpp', '.h', '.html', '.css', '.scss', '.jsx', '.tsx', '.ts', '.txt', '.md', '.json', '.yml', '.yaml', '.xml', '.php', '.rb', '.go', '.rs', '.cs')):
         """
         Download semua repository mahasiswa untuk assignment tertentu
         """
         print(f"Memulai download repository untuk assignment {assignment_id}...")
         
-        # Buat direktori jika belum ada
-        os.makedirs(save_dir, exist_ok=True)
+        # Buat struktur folder yang terorganisir
+        organized_save_dir = self._create_organized_save_dir(save_dir, assignment_id)
+        os.makedirs(organized_save_dir, exist_ok=True)
+        
+        print(f"📁 Data akan disimpan di: {organized_save_dir}")
         
         # Jika assignment_id adalah repository ID (dari organization repos), gunakan pendekatan berbeda
         if isinstance(assignment_id, int) or str(assignment_id).isdigit():
-            return self._download_from_repository_id(assignment_id, save_dir, allowed_extensions)
+            return self._download_from_repository_id(assignment_id, organized_save_dir, allowed_extensions)
         
         # Ambil daftar accepted assignments (untuk GitHub Classroom API tradisional)
         print(f"🔍 Mencari accepted assignments untuk assignment ID: {assignment_id}")
@@ -268,12 +314,15 @@ class GitHubClassroom:
         if not accepted_assignments:
             print("❌ Tidak ada student repository yang ditemukan via API.")
             print("🔍 Mencoba fallback ke pencarian manual...")
-            return self._download_from_repository_id(assignment_id, save_dir, allowed_extensions)
+            return self._download_from_repository_id(assignment_id, organized_save_dir, allowed_extensions)
         
         downloaded_files = []
         total_repos = len(accepted_assignments)
         
         print(f"✅ Ditemukan {total_repos} student repository. Mulai download...")
+        
+        # Progress tracking
+        start_time = time.time()
         
         for i, assignment in enumerate(accepted_assignments, 1):
             repository = assignment.get('repository', {})
@@ -289,7 +338,17 @@ class GitHubClassroom:
             student_names = [student.get('login', 'unknown') for student in students]
             student_info = '_'.join(student_names) if student_names else 'unknown'
             
+            elapsed = time.time() - start_time
+            eta = (elapsed / i) * (total_repos - i) if i > 0 else 0
             print(f"  [{i}/{total_repos}] 📥 Downloading from {repo_full_name} (Student: {student_info})")
+            print(f"    Progress: {(i/total_repos)*100:.1f}% | Elapsed: {elapsed:.1f}s | ETA: {eta:.1f}s")
+            
+            # Check if repository already downloaded (skip if exists)
+            repo_folder_name = f"{repo_full_name.replace('/', '_')}"
+            repo_save_path = os.path.join(organized_save_dir, repo_folder_name)
+            if os.path.exists(repo_save_path) and os.listdir(repo_save_path):
+                print(f"    -> ⏭️ Already downloaded, skipping...")
+                continue
             
             # Check accessibility terlebih dahulu
             if repo_full_name:
@@ -305,7 +364,7 @@ class GitHubClassroom:
             
             try:
                 # Download files dari repository ini
-                repo_files = self._download_repo_files(repo_url, save_dir, student_info, allowed_extensions)
+                repo_files = self._download_repo_files(repo_url, organized_save_dir, student_info, allowed_extensions)
                 downloaded_files.extend(repo_files)
                 print(f"    -> ✅ Downloaded {len(repo_files)} files")
             except Exception as e:
@@ -725,7 +784,7 @@ class GitHubClassroom:
             from .github_scraper import scrape_repo_files
             
             # Download menggunakan scraper yang sudah ada
-            downloaded_files = scrape_repo_files(repo_url, save_dir)
+            downloaded_files = scrape_repo_files(repo_url, save_dir, allowed_extensions)
             
             # Filter hanya file dengan ekstensi yang diinginkan
             filtered_files = []

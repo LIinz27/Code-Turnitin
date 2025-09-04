@@ -47,7 +47,7 @@ def get_github_repo_info(repo_url):
         return username, repo_name
     return None, None
 
-def scrape_repo_files(repo_url, save_dir, allowed_extensions=('.js', '.py', '.java', '.c', '.cpp', '.h')):
+def scrape_repo_files(repo_url, save_dir, allowed_extensions=('.js', '.py', '.java', '.c', '.cpp', '.h', '.html', '.css', '.scss', '.jsx', '.tsx', '.ts', '.txt', '.md', '.json', '.yml', '.yaml', '.xml', '.php', '.rb', '.go', '.rs', '.cs')):
     """
     Mengunduh semua file kode dari repositori GitHub ke direktori yang ditentukan.
     Menggunakan GitHub Contents API untuk akses yang lebih reliable ke private repos.
@@ -70,6 +70,59 @@ def scrape_repo_files(repo_url, save_dir, allowed_extensions=('.js', '.py', '.ja
 
     print(f"Mengambil daftar file dari {repo_url}...")
     
+    # Define folders and files to exclude (global untuk fungsi ini)
+    excluded_folders = {
+        'node_modules', '.git', '.github', 'vendor', 'dist', 'build', 
+        'target', 'bin', 'obj', '.vs', '.vscode', '.idea', '__pycache__',
+        'cache', 'logs', 'temp', 'tmp', '.next', '.nuxt', 'coverage',
+        'assets', 'images', 'img', 
+        'bower_components', 'jspm_packages', 'web_modules', '.bundle',
+        'lib', 'libs', 'packages', '.yarn', '.npm'
+    }
+    
+    excluded_files = {
+        '.gitignore', '.gitattributes', 'README.md', 'readme.txt',
+        'LICENSE', 'license.txt', '.env', '.env.local', '.env.production',
+        'package-lock.json', 'yarn.lock', 'composer.lock', 'Gemfile.lock',
+        '.DS_Store', 'Thumbs.db', '*.log', '*.tmp', '*.cache',
+        '.eslintrc', '.prettierrc', '.babelrc', 'webpack.config.js',
+        'gulpfile.js', 'gruntfile.js', 'tsconfig.json', 'jest.config.js'
+    }
+    
+    def should_exclude_path(path):
+        """Check if path should be excluded"""
+        path_parts = path.split('/')
+        
+        # Check if any part of the path is an excluded folder
+        for part in path_parts:
+            if part.lower() in excluded_folders:
+                return True
+        
+        # Check if filename is excluded
+        filename = os.path.basename(path).lower()
+        if filename in excluded_files:
+            return True
+            
+        # Check for common patterns
+        if any(pattern in filename for pattern in ['.min.', '.bundle.', '.compiled.']):
+            return True
+        
+        # Check for binary/image/video files
+        binary_extensions = {
+            '.exe', '.dll', '.so', '.dylib', '.jar', '.war', '.ear',
+            '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.ico', '.svg',
+            '.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm',
+            '.mp3', '.wav', '.ogg', '.flac', '.aac',
+            '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
+            '.zip', '.rar', '.7z', '.tar', '.gz', '.bz2'
+        }
+        
+        file_ext = os.path.splitext(filename)[1].lower()
+        if file_ext in binary_extensions:
+            return True
+            
+        return False
+    
     # Method 1: Gunakan Contents API untuk akses yang lebih reliable
     downloaded_files_info = []
     
@@ -91,30 +144,64 @@ def scrape_repo_files(repo_url, save_dir, allowed_extensions=('.js', '.py', '.ja
     try:
         files_found = []
         
-        # Function recursive untuk mengambil files dari semua folder
-        def get_files_recursive(path=""):
+        # Function recursive untuk mengambil files dari semua folder dengan optimasi
+        def get_files_recursive(path="", depth=0):
+            # Limit depth untuk mencegah traversal terlalu dalam
+            if depth > 10:
+                print(f"    ⚠️ Skipping deep path (depth {depth}): {path}")
+                return
+                
+            # Skip if this path should be excluded
+            if path and should_exclude_path(path):
+                print(f"    ⏭️ Skipping excluded path: {path}")
+                return
+                
             url = f'https://api.github.com/repos/{username}/{repo_name}/contents'
             if path:
                 url += f'/{path}'
             url += f'?ref={default_branch}'
             
             try:
-                response = requests.get(url, headers=headers, timeout=15)
+                # Reduced timeout untuk responsiveness
+                response = requests.get(url, headers=headers, timeout=10)
                 if response.status_code == 200:
                     items = response.json()
+                    
+                    # Batch process untuk efficiency
+                    files_in_dir = []
+                    dirs_to_process = []
+                    
                     for item in items:
+                        item_path = item.get('path', '')
+                        
+                        # Skip excluded paths
+                        if should_exclude_path(item_path):
+                            continue
+                            
                         if item.get('type') == 'file':
-                            file_path = item.get('path', '')
-                            file_ext = os.path.splitext(file_path)[1].lower()
+                            file_ext = os.path.splitext(item_path)[1].lower()
                             if file_ext in allowed_extensions:
-                                files_found.append({
-                                    'path': file_path,
+                                files_in_dir.append({
+                                    'path': item_path,
                                     'download_url': item.get('download_url'),
                                     'name': item.get('name')
                                 })
                         elif item.get('type') == 'dir':
-                            # Recursively get files from subdirectory
-                            get_files_recursive(item.get('path', ''))
+                            dirs_to_process.append(item_path)
+                    
+                    # Add files found in this directory
+                    files_found.extend(files_in_dir)
+                    if files_in_dir:
+                        print(f"    📂 Found {len(files_in_dir)} files in {path or 'root'}")
+                    
+                    # Recursively process directories
+                    for dir_path in dirs_to_process:
+                        get_files_recursive(dir_path, depth + 1)
+                        
+                elif response.status_code == 403:
+                    print(f"    ⚠️ API rate limit hit - waiting...")
+                    import time
+                    time.sleep(2)  # Brief pause for rate limiting
                 else:
                     print(f"    ⚠️ Cannot access path '{path}': {response.status_code}")
             except Exception as e:
@@ -125,49 +212,86 @@ def scrape_repo_files(repo_url, save_dir, allowed_extensions=('.js', '.py', '.ja
         
         print(f"🔍 Ditemukan {len(files_found)} file kode untuk didownload")
         
-        # Download file-file tersebut menggunakan download_url dari Contents API
-        for file_info in files_found:
+        # Download file-file tersebut dengan optimasi
+        from concurrent.futures import ThreadPoolExecutor
+        import threading
+        
+        # Thread-safe list untuk hasil download
+        download_results = []
+        download_lock = threading.Lock()
+        
+        def download_single_file(file_info):
+            """Download single file dengan error handling"""
             file_path = file_info['path']
             download_url = file_info['download_url']
             file_name = file_info['name']
             
             if not download_url:
                 print(f"  ⚠️ No download URL for: {file_path}")
-                continue
+                return None
             
             # Simpan dengan nama file yang aman
             safe_filename = file_path.replace('/', '_').replace('\\', '_')
             save_path = os.path.join(repo_save_dir, safe_filename)
 
-            if not os.path.exists(save_path):
-                print(f"  📥 Mengunduh: {file_path}")
-                try:
-                    # Gunakan download_url yang sudah include token untuk private repos
-                    response = requests.get(download_url, timeout=30)
-                    if response.status_code == 200:
-                        with open(save_path, 'wb') as f:
-                            f.write(response.content)
-                        
-                        downloaded_files_info.append({
+            if os.path.exists(save_path):
+                print(f"  ⏭️ Already exists: {file_path}")
+                with download_lock:
+                    download_results.append({
+                        'repo_folder': repo_folder_name,
+                        'file_name': safe_filename,
+                        'file_path': save_path,
+                        'original_path': file_path
+                    })
+                return save_path
+            
+            try:
+                print(f"  📥 Downloading: {file_path}")
+                # Reduced timeout untuk responsiveness
+                response = requests.get(download_url, timeout=15)
+                if response.status_code == 200:
+                    with open(save_path, 'wb') as f:
+                        f.write(response.content)
+                    
+                    with download_lock:
+                        download_results.append({
                             'repo_folder': repo_folder_name,
                             'file_name': safe_filename,
                             'file_path': save_path,
                             'original_path': file_path
                         })
-                        print(f"    ✅ Berhasil ({len(response.content)} bytes)")
-                    else:
-                        print(f"    ❌ Download failed: {response.status_code}")
-                except Exception as e:
-                    print(f"    ❌ Download error: {e}")
-            else:
-                # File sudah ada
-                downloaded_files_info.append({
-                    'repo_folder': repo_folder_name,
-                    'file_name': safe_filename,
-                    'file_path': save_path,
-                    'original_path': file_path
-                })
-                print(f"  ✅ Sudah ada: {file_path}")
+                    
+                    size_kb = len(response.content) / 1024
+                    print(f"    ✅ Downloaded {file_path} ({size_kb:.1f} KB)")
+                    return save_path
+                else:
+                    print(f"    ❌ Failed to download {file_path}: HTTP {response.status_code}")
+                    return None
+            except Exception as e:
+                print(f"    ❌ Error downloading {file_path}: {e}")
+                return None
+        
+        # Download files dengan thread pool (tapi batasi untuk menghindari rate limiting)
+        max_workers = min(3, len(files_found))  # Limit concurrent downloads
+        
+        if len(files_found) <= 5:
+            # For small number of files, use sequential download
+            for file_info in files_found:
+                download_single_file(file_info)
+        else:
+            # For larger number of files, use parallel download with limited workers
+            print(f"  🚀 Starting parallel download with {max_workers} workers...")
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                futures = [executor.submit(download_single_file, file_info) for file_info in files_found]
+                
+                # Wait for all downloads to complete
+                for future in futures:
+                    try:
+                        future.result(timeout=30)  # 30 second timeout per file
+                    except Exception as e:
+                        print(f"    ❌ Download thread error: {e}")
+        
+        downloaded_files_info = download_results
                 
     except Exception as e:
         print(f"❌ Contents API error: {e}")
@@ -203,6 +327,11 @@ def scrape_repo_files(repo_url, save_dir, allowed_extensions=('.js', '.py', '.ja
             for item in tree_data.get('tree', []):
                 if item['type'] == 'blob':
                     file_path = item['path']
+                    
+                    # Skip excluded paths using the same filter function
+                    if should_exclude_path(file_path):
+                        continue
+                        
                     file_ext = os.path.splitext(file_path)[1].lower()
                     if file_ext in allowed_extensions:
                         files_to_download.append(file_path)
