@@ -125,4 +125,4 @@ def register_file_api_routes(app):
     app.add_url_rule('/clear_github_files', 'clear_github_files_legacy', 
                      clear_github_files, methods=['POST'])
     app.add_url_rule('/get_code_content', 'get_code_content_legacy', 
-                     get_code_content, methods=['POST'])
+                     get_code_content_legacy, methods=['POST'])

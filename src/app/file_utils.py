@@ -83,7 +83,7 @@ class FileManager:
         Get content of a file
         
         Args:
-            filename: Name of the file
+            filename: Name of the file (dapat berupa path lengkap seperti 'repo/file.js')
             file_type: Type of file ('mahasiswa' or 'github')
             
         Returns:
@@ -103,11 +103,17 @@ class FileManager:
         except KeyError as e:
             return None, f"Configuration error: {e}"
         
-        # Find file (could be in subdirectories)
-        file_path = FileManager._find_file_recursive(base_dir, filename)
+        # Handle both full path and just filename
+        # If filename contains path separator, treat as full path
+        file_path = os.path.join(base_dir, filename)
         
-        if not file_path:
-            return None, f"File '{filename}' not found in {file_type} directory."
+        if not os.path.exists(file_path):
+            # Try to find file recursively if direct path doesn't work
+            found_path = FileManager._find_file_recursive(base_dir, os.path.basename(filename))
+            if found_path:
+                file_path = found_path
+            else:
+                return None, f"File '{filename}' not found in {file_type} directory."
         
         # Read file content
         try:
