@@ -265,23 +265,27 @@ class RepositoryDownloader:
         
         # Try GitHub Classroom accepted assignments API
         try:
+            print("📡 Fetching accepted assignments...")
             accepted_assignments = self.assignment_manager.get_accepted_assignments(assignment_id)
             if accepted_assignments:
                 preview_data['method_used'] = 'github_classroom_api'
-                preview_data = self._process_preview_data(accepted_assignments, preview_data)
+                print(f"✅ Found {len(accepted_assignments)} accepted assignments")
+                preview_data = self._process_preview_data_fast(accepted_assignments, preview_data)
+            else:
+                print("❌ No accepted assignments found")
                 
         except Exception as e:
             print(f"Error during preview: {e}")
         
         return preview_data
     
-    def _process_preview_data(
+    def _process_preview_data_fast(
         self, 
         accepted_assignments: List[Dict[str, Any]], 
         preview_data: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
-        Process preview data from accepted assignments
+        Process preview data with optimized performance (skip accessibility checks for speed)
         
         Args:
             accepted_assignments: List of accepted assignments
@@ -290,6 +294,65 @@ class RepositoryDownloader:
         Returns:
             Updated preview data
         """
+        print(f"🚀 Fast processing {len(accepted_assignments)} repositories...")
+        
+        for assignment in accepted_assignments:
+            repository = assignment.get('repository', {})
+            repo_full_name = repository.get('full_name')
+            
+            if repo_full_name:
+                # Skip accessibility check for speed - assume accessible
+                is_private = repository.get('private', False)
+                
+                # Quick status determination based on privacy
+                if is_private:
+                    accessibility_status = 'private_accessible'  # Assume accessible since it's in accepted assignments
+                else:
+                    accessibility_status = 'public'
+                
+                repo_info = {
+                    'name': repo_full_name,
+                    'full_name': repo_full_name,
+                    'html_url': repository.get('html_url'),
+                    'students': [s.get('login') for s in assignment.get('students', [])],
+                    'accessibility': {
+                        'status': accessibility_status,
+                        'message': 'Status determined without API check for speed'
+                    },
+                    'private': is_private,
+                    'estimated_files': 10  # Default estimate for speed
+                }
+                
+                preview_data['repositories'].append(repo_info)
+                
+                # Update access summary
+                valid_statuses = ['public', 'private_accessible', 'private_no_access', 'not_found']
+                if accessibility_status in valid_statuses:
+                    preview_data['access_summary'][accessibility_status] += 1
+                else:
+                    preview_data['access_summary']['not_found'] += 1
+                preview_data['access_summary']['total'] += 1
+        
+        print(f"✅ Fast processing completed: {len(preview_data['repositories'])} repositories")
+        return preview_data
+
+    def _process_preview_data(
+        self, 
+        accepted_assignments: List[Dict[str, Any]], 
+        preview_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Process preview data from accepted assignments (with full accessibility checks)
+        
+        Args:
+            accepted_assignments: List of accepted assignments
+            preview_data: Preview data to update
+            
+        Returns:
+            Updated preview data
+        """
+        print(f"🔍 Full processing {len(accepted_assignments)} repositories...")
+        
         for assignment in accepted_assignments:
             repository = assignment.get('repository', {})
             repo_full_name = repository.get('full_name')

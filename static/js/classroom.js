@@ -586,12 +586,17 @@ async function previewRepositories() {
     }
     
     showLoading('preview');
+    showStatus('🔍 Fetching repository preview... This may take a moment.', 'info');
     
     try {
+        const startTime = Date.now();
         const response = await fetch(`/api/classroom/${currentClassroom.id}/assignments/${currentAssignment.id}/preview`);
         const data = await response.json();
         
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        
         if (data.success) {
+            showStatus(`✅ Preview loaded in ${elapsed}s`, 'success');
             showPreviewModal(data.preview);
         } else {
             showStatus(`Preview failed: ${data.error}`, 'error');
@@ -686,10 +691,10 @@ function showPreviewModal(previewData) {
     
     content.innerHTML = `
         <div class="mb-6">
-            <h3 class="text-xl font-bold text-gray-900 mb-2">Preview: ${assignment.title}</h3>
-            <p class="text-gray-600">Assignment Type: ${assignment.type}</p>
-            <p class="text-gray-600">Discovery Method: ${previewData.method_used}</p>
-            <p class="text-gray-600">Total Estimated Files: ${previewData.total_estimated_files}</p>
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Preview: ${assignment?.title || 'Assignment Preview'}</h3>
+            <p class="text-gray-600">Assignment Type: ${assignment?.type || 'individual'}</p>
+            <p class="text-gray-600">Discovery Method: ${previewData.method_used || 'unknown'}</p>
+            <p class="text-gray-600">Total Estimated Files: ${previewData.total_estimated_files || 0}</p>
         </div>
         
         ${accessSummaryHtml}

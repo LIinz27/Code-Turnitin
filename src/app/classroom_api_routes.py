@@ -115,8 +115,68 @@ def api_classroom_assignments(classroom_id):
 def api_assignment_preview(classroom_id, assignment_id):
     """Preview assignment repositories without downloading"""
     try:
+        print(f"🔍 Starting preview for assignment {assignment_id}...")
+        
         classroom = GitHubClassroom()
+        
+        # Get preview data (optimized for speed)
+        print("📡 Getting repository preview data...")
         preview_data = classroom.preview_assignment_repositories(assignment_id)
+        
+        # Get assignment details (with timeout to avoid hanging)
+        print("📋 Getting assignment details...")
+        try:
+            import threading
+            import time
+            
+            assignment_details = None
+            error_occurred = None
+            
+            def get_assignment_details():
+                nonlocal assignment_details, error_occurred
+                try:
+                    assignment_details = classroom.assignment_manager.get_assignment_details(assignment_id)
+                except Exception as e:
+                    error_occurred = e
+            
+            # Start thread with timeout
+            thread = threading.Thread(target=get_assignment_details)
+            thread.daemon = True
+            thread.start()
+            thread.join(timeout=3)  # 3 second timeout
+            
+            if thread.is_alive():
+                print("Warning: Assignment details request timed out")
+                assignment_details = None
+            elif error_occurred:
+                print(f"Warning: Could not get assignment details: {error_occurred}")
+                assignment_details = None
+                
+        except Exception as e:
+            print(f"Warning: Could not get assignment details: {e}")
+            assignment_details = None
+        
+        # Add assignment info to preview data
+        if assignment_details:
+            preview_data['assignment'] = {
+                'id': assignment_id,
+                'title': assignment_details.get('title', f'Assignment {assignment_id}'),
+                'type': assignment_details.get('type', 'individual'),
+                'classroom_id': assignment_details.get('classroom', {}).get('id', classroom_id)
+            }
+        else:
+            preview_data['assignment'] = {
+                'id': assignment_id,
+                'title': f'Assignment {assignment_id}',
+                'type': 'individual',
+                'classroom_id': classroom_id
+            }
+        
+        # Calculate total estimated files
+        total_files = sum(repo.get('estimated_files', 0) for repo in preview_data.get('repositories', []))
+        preview_data['total_estimated_files'] = total_files
+        
+        print(f"✅ Preview completed: {len(preview_data.get('repositories', []))} repositories, {total_files} estimated files")
         
         return jsonify({
             "success": True,
