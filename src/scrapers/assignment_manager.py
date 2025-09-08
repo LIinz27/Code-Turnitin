@@ -203,20 +203,34 @@ class AssignmentManager:
         Returns:
             List of accepted assignment dictionaries
         """
-        print(f"Mengambil student repositories untuk assignment {assignment_id}...")
+        print(f"📡 Mengambil student repositories untuk assignment {assignment_id}...")
         params = {'page': page, 'per_page': per_page}
         
-        accepted = self.auth.make_request(f'assignments/{assignment_id}/accepted_assignments', params)
-        
-        if accepted is None:
+        try:
+            accepted = self.auth.make_request(f'assignments/{assignment_id}/accepted_assignments', params)
+            
+            if accepted is None:
+                print(f"⚠️ Tidak ada response dari API untuk assignment {assignment_id}")
+                print(f"   Endpoint: assignments/{assignment_id}/accepted_assignments")
+                print(f"   Kemungkinan penyebab:")
+                print(f"   - Assignment ID tidak valid atau tidak ditemukan")
+                print(f"   - Token tidak memiliki akses ke assignment ini")
+                print(f"   - Assignment belum memiliki accepted submissions")
+                return []
+            
+            # If response is a list
+            if isinstance(accepted, list):
+                print(f"✅ Berhasil mendapatkan {len(accepted)} accepted assignments")
+                return accepted
+            
+            # If response is single object, wrap in list
+            result = [accepted] if accepted else []
+            print(f"✅ Berhasil mendapatkan {len(result)} accepted assignment")
+            return result
+            
+        except Exception as e:
+            print(f"❌ Error saat mengambil accepted assignments: {e}")
             return []
-        
-        # If response is a list
-        if isinstance(accepted, list):
-            return accepted
-        
-        # If response is single object, wrap in list
-        return [accepted] if accepted else []
     
     def get_assignment_grades(self, assignment_id: int) -> Optional[Dict[str, Any]]:
         """

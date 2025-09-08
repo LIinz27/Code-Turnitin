@@ -592,7 +592,7 @@ async function previewRepositories() {
         const data = await response.json();
         
         if (data.success) {
-            showPreviewModal(data);
+            showPreviewModal(data.preview);
         } else {
             showStatus(`Preview failed: ${data.error}`, 'error');
         }
@@ -614,12 +614,13 @@ function showPreviewModal(previewData) {
         return showPreviewModal(previewData);
     }
     
-    const assignment = previewData.assignment;
-    const repositories = previewData.repositories;
-    const accessSummary = previewData.access_summary;
+    // Safely access data with fallbacks
+    const assignment = previewData.assignment || {};
+    const repositories = previewData.repositories || [];
+    const accessSummary = previewData.access_summary || {};
     
     let accessSummaryHtml = '';
-    if (accessSummary.total > 0) {
+    if (accessSummary && accessSummary.total && accessSummary.total > 0) {
         // Calculate accessible repositories (public + private_accessible)
         const accessible = (accessSummary.public || 0) + (accessSummary.private_accessible || 0);
         const privateNoAccess = accessSummary.private_no_access || 0;

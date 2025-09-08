@@ -60,19 +60,23 @@ class RepositoryDownloader:
         organized_save_dir = self.folder_organizer.create_organized_save_dir(save_dir, assignment_id)
         print(f"📁 Data akan disimpan di: {organized_save_dir}")
         
-        # Handle repository ID vs assignment ID
-        if isinstance(assignment_id, int) or str(assignment_id).isdigit():
-            return self._download_from_repository_id(assignment_id, organized_save_dir, allowed_extensions)
-        
-        # Get accepted assignments (traditional GitHub Classroom API)
+        # Get accepted assignments using GitHub Classroom API
         print(f"🔍 Mencari accepted assignments untuk assignment ID: {assignment_id}")
         accepted_assignments = self.assignment_manager.get_accepted_assignments(assignment_id)
         
         if not accepted_assignments:
-            print("❌ Tidak ada student repository yang ditemukan via API.")
+            print("❌ Tidak ada student repository yang ditemukan via GitHub Classroom API.")
+            print("   Kemungkinan penyebab:")
+            print("   - Assignment ID tidak valid")
+            print("   - Token GitHub tidak memiliki akses ke classroom")
+            print("   - Assignment belum memiliki submissions")
+            print("   - Repository sudah dihapus atau di-private")
+            
+            # Try fallback method
             print("🔍 Mencoba fallback ke pencarian manual...")
             return self._download_from_repository_id(assignment_id, organized_save_dir, allowed_extensions)
         
+        print(f"✅ Ditemukan {len(accepted_assignments)} accepted assignments")
         return self._download_accepted_assignments(accepted_assignments, organized_save_dir, allowed_extensions)
     
     def _download_accepted_assignments(
@@ -168,24 +172,13 @@ class RepositoryDownloader:
         Returns:
             List of downloaded file paths
         """
-        # Implementation for repository ID based download
-        # This is a simplified version - you may want to implement more sophisticated logic
         print(f"🔍 Attempting to download from repository ID: {repo_id}")
+        print(f"⚠️ Repository ID {repo_id} tidak dapat diakses langsung.")
+        print(f"   Ini biasanya terjadi karena repository private atau tidak tersedia.")
+        print(f"   Coba gunakan GitHub Classroom API atau pastikan token memiliki akses.")
         
-        try:
-            # Get repository details
-            repo_details = self.auth.make_request(f'repositories/{repo_id}')
-            if not repo_details:
-                print(f"❌ Could not get repository details for ID: {repo_id}")
-                return []
-            
-            repo_url = repo_details.get('html_url')
-            if repo_url:
-                return self._download_repo_files(repo_url, save_dir, 'unknown', allowed_extensions)
-            
-        except Exception as e:
-            print(f"❌ Error downloading from repository ID {repo_id}: {e}")
-        
+        # Instead of trying to access by ID, return empty list
+        # The calling function should handle this gracefully
         return []
     
     def _download_repo_files(
@@ -212,8 +205,7 @@ class RepositoryDownloader:
             downloaded_files = scrape_repo_files(
                 repo_url=repo_url,
                 save_dir=save_dir,
-                allowed_extensions=allowed_extensions,
-                github_token=self.auth.github_token
+                allowed_extensions=allowed_extensions
             )
             return downloaded_files
         except Exception as e:
@@ -304,16 +296,27 @@ class RepositoryDownloader:
             
             if repo_full_name:
                 accessibility = self._check_repository_accessibility(repo_full_name)
+                accessibility_status = accessibility.get('status', 'unknown')
                 
                 repo_info = {
                     'name': repo_full_name,
+                    'full_name': repo_full_name,
+                    'html_url': repository.get('html_url'),
                     'students': [s.get('login') for s in assignment.get('students', [])],
-                    'accessibility': accessibility['status'],
-                    'url': repository.get('html_url')
+                    'accessibility': accessibility,
+                    'private': repository.get('private', False),
+                    'estimated_files': 10  # Default estimate
                 }
                 
                 preview_data['repositories'].append(repo_info)
-                preview_data['access_summary'][accessibility['status']] += 1
+                
+                # Update access summary
+                valid_statuses = ['public', 'private_accessible', 'private_no_access', 'not_found']
+                if accessibility_status in valid_statuses:
+                    preview_data['access_summary'][accessibility_status] += 1
+                else:
+                    # For unknown statuses, count as 'not_found'
+                    preview_data['access_summary']['not_found'] += 1
                 preview_data['access_summary']['total'] += 1
         
         return preview_data

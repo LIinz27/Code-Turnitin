@@ -94,8 +94,24 @@ class GitHubAuth:
             )
             response.raise_for_status()
             return response.json()
+        except requests.exceptions.HTTPError as e:
+            if response.status_code == 404:
+                print(f"🔍 Resource tidak ditemukan: {endpoint}")
+                print(f"   URL: {url}")
+                print(f"   Kemungkinan: endpoint tidak valid, resource dihapus, atau tidak ada akses")
+            elif response.status_code == 403:
+                print(f"🚫 Akses ditolak: {endpoint}")
+                print(f"   URL: {url}")
+                print(f"   Kemungkinan: rate limit exceeded atau insufficient permissions")
+            elif response.status_code == 401:
+                print(f"🔐 Tidak terautentikasi: {endpoint}")
+                print(f"   URL: {url}")
+                print(f"   Kemungkinan: token tidak valid atau expired")
+            else:
+                print(f"❌ HTTP Error {response.status_code}: {e}")
+            return None
         except requests.exceptions.RequestException as e:
-            print(f"Error making request to {url}: {e}")
+            print(f"❌ Error making request to {url}: {e}")
             return None
     
     def is_authenticated(self) -> bool:
