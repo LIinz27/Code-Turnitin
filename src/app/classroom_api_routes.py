@@ -276,46 +276,6 @@ def api_check_access():
         }), 500
 
 
-@classroom_api_bp.route('/token-info', methods=['GET'])
-def api_token_info():
-    """Get GitHub token information and rate limits"""
-    try:
-        classroom = GitHubClassroom()
-        
-        # Check if authenticated
-        is_authenticated = classroom.is_authenticated()
-        
-        if not is_authenticated:
-            return jsonify({
-                "success": False,
-                "authenticated": False,
-                "error": "GitHub token tidak valid atau tidak tersedia"
-            }), 401
-        
-        # Get rate limit info
-        rate_limit_info = classroom.get_rate_limit_info()
-        
-        # Get user info
-        user_info = classroom.auth.make_request('user')
-        
-        return jsonify({
-            "success": True,
-            "authenticated": True,
-            "user": {
-                "login": user_info.get('login') if user_info else None,
-                "name": user_info.get('name') if user_info else None
-            },
-            "rate_limit": rate_limit_info
-        }), 200
-        
-    except Exception as e:
-        print(f"Error getting token info: {e}")
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
-
-
 def register_classroom_api_routes(app):
     """
     Register classroom API routes with the Flask application

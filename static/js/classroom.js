@@ -6,87 +6,6 @@ let assignmentsData = [];
 
 console.log('Classroom.js loaded successfully');
 
-// Test function to verify JavaScript is working
-function testFunction() {
-    console.log('Test function called - JavaScript is working!');
-    alert('JavaScript is working!');
-}
-
-// Test fetch function to verify network connectivity
-async function testFetch() {
-    console.log('Testing fetch...');
-    try {
-        const response = await fetch('/api/classroom/list');
-        console.log('Fetch response:', response);
-        const data = await response.json();
-        console.log('Fetch data:', data);
-        alert(`Fetch test successful! Found ${data.classrooms ? data.classrooms.length : 0} classrooms`);
-    } catch (error) {
-        console.error('Fetch test error:', error);
-        alert(`Fetch test failed: ${error.message}`);
-    }
-}
-
-async function checkTokenInfo() {
-    console.log('Checking token info...');
-    showStatus('Checking GitHub token permissions...', 'info');
-    
-    try {
-        const response = await fetch('/api/classroom/token-info');
-        const data = await response.json();
-        
-        if (data.success) {
-            const tokenInfo = data.token_info;
-            let message = '';
-            let detailsHtml = '';
-            let statusType = 'info';
-            
-            if (tokenInfo.status === 'success') {
-                message = `GitHub Token Information for: ${tokenInfo.user}`;
-                statusType = tokenInfo.can_access_private ? 'success' : 'error';
-                
-                detailsHtml = `
-                    <div class="space-y-3">
-                        <div>
-                            <strong>User:</strong> ${tokenInfo.user}<br>
-                            <strong>Can access private repositories:</strong> ${tokenInfo.can_access_private ? '✅ Yes' : '❌ No'}<br>
-                            <strong>Token scopes:</strong> ${tokenInfo.scopes.length > 0 ? tokenInfo.scopes.join(', ') : 'No scopes detected'}
-                        </div>
-                        
-                        <div>
-                            <strong>Recommendations:</strong>
-                            ${tokenInfo.recommendations.map(rec => `
-                                <div class="mt-2 p-2 border-l-4 ${rec.issue.includes('Good') ? 'border-green-400 bg-green-50' : 'border-orange-400 bg-orange-50'}">
-                                    <strong>${rec.issue}:</strong> ${rec.description}<br>
-                                    <em>${rec.solution}</em>
-                                </div>
-                            `).join('')}
-                        </div>
-                        
-                        ${!tokenInfo.can_access_private ? `
-                            <div class="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded">
-                                <strong>⚠️ Limited Access:</strong> Your token cannot access private repositories. 
-                                To access private classroom repositories, create a new token with "repo" scope.
-                            </div>
-                        ` : ''}
-                    </div>
-                `;
-            } else {
-                message = '❌ Error checking token';
-                statusType = 'error';
-                detailsHtml = `<p>Unable to verify token permissions: ${tokenInfo.message}</p>`;
-            }
-            
-            showDetailedStatus(message, detailsHtml, statusType);
-        } else {
-            showStatus(`Error: ${data.error}`, 'error');
-        }
-    } catch (error) {
-        console.error('Error checking token info:', error);
-        showStatus('Error connecting to server', 'error');
-    }
-}
-
 // Utility functions
 function showLoading(elementId) {
     const textElement = document.getElementById(elementId + '-text');
@@ -156,46 +75,6 @@ function updateProgress(percentage, text) {
 }
 
 // Main functions
-async function autoDiscoverClassrooms() {
-    showLoading('auto-discover');
-    
-    try {
-        const response = await fetch('/api/classroom/list', {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            populateClassroomSelect(data.classrooms);
-            showStatus(`Found ${data.classrooms.length} accessible classrooms`, 'success');
-        } else {
-            showStatus(`Error: ${data.error}`, 'error');
-        }
-    } catch (error) {
-        console.error('Error auto-discovering classrooms:', error);
-        showStatus('Error connecting to server', 'error');
-    } finally {
-        hideLoading('auto-discover');
-    }
-}
-
-function populateClassroomSelect(classrooms) {
-    const select = document.getElementById('classroom-select');
-    select.innerHTML = '<option value="">-- Pilih Classroom --</option>';
-    
-    classrooms.forEach(classroom => {
-        const option = document.createElement('option');
-        option.value = classroom.id;
-        option.textContent = `${classroom.name} (ID: ${classroom.id})`;
-        option.dataset.classroom = JSON.stringify(classroom);
-        select.appendChild(option);
-    });
-}
-
 async function loadClassroom() {
     console.log('loadClassroom function called');
     const classroomUrl = document.getElementById('classroom-url').value.trim();
