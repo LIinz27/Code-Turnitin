@@ -8,26 +8,43 @@
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body class="min-h-screen bg-gray-50 dark:bg-gray-900">
-    <div class="max-w-4xl mx-auto p-6">
-        <!-- Header -->
-        <header class="text-center mb-8">
-            <h1 class="text-3xl font-bold text-gray-800 dark:text-white mb-2">🎓 GitHub Classroom</h1>
-            <p class="text-gray-600 dark:text-gray-300 mb-6">Analisis otomatis untuk assignment GitHub Classroom</p>
-            
-            <!-- Navigation -->
-            <div class="flex justify-center space-x-4 mb-8">
-                <a href="/" class="btn-secondary">← Beranda</a>
-                <a href="/auto-search" class="btn-secondary">🔍 Auto Search</a>
-                <a href="/test-repos" class="btn-secondary">🧪 Test Repos</a>
+    <!-- Top Navigation Bar -->
+    <nav class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
+        <div class="max-w-7xl mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-8">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Code Turnitin</h1>
+                        <p class="text-sm text-gray-600 dark:text-gray-300">GitHub Classroom Integration</p>
+                    </div>
+                    <div class="hidden md:flex space-x-6">
+                        <a href="/" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium pb-1 border-b-2 border-transparent hover:border-blue-600 transition-all">
+                            🏠 Beranda
+                        </a>
+                        <a href="/auto-search" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium pb-1 border-b-2 border-transparent hover:border-blue-600 transition-all">
+                            🔍 Auto Search
+                        </a>
+                        <a href="/classroom" class="text-blue-600 dark:text-blue-400 font-medium border-b-2 border-blue-600 pb-1">
+                            🎓 GitHub Classroom
+                        </a>
+                    </div>
+                </div>
                 <button id="themeToggle" class="btn-secondary">🌙</button>
             </div>
-        </header>
+        </div>
+    </nav>
 
-        <!-- Step 1: Classroom Selection -->
-        <section class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8">
-            <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-6">📚 Step 1: Pilih Classroom</h2>
-            
-            <div class="grid md:grid-cols-2 gap-6">
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-6 py-8">
+        <!-- Classroom Dashboard Layout -->
+        <div class="grid grid-cols-12 gap-8">
+
+            <!-- Left Panel - Classroom Selection -->
+            <div class="col-span-12 lg:col-span-4">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 h-fit">
+                    <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-6">📚 Pilih Classroom</h2>
+                    
+                    <div class="space-y-4">
                 <div class="space-y-4">
                     <div>
                         <label for="classroom-url" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -54,91 +71,96 @@
                     <div id="status-message" class="hidden mt-4 p-3 rounded-md"></div>
                 </div>
                 
-                <div id="classroom-info" class="classroom-info hidden bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                    <h3 class="font-semibold text-gray-800 dark:text-white mb-2" id="classroom-name">Nama Classroom</h3>
-                    <p class="text-sm text-gray-600 dark:text-gray-300 mb-2" id="classroom-description">Deskripsi classroom akan muncul di sini</p>
-                    <div class="text-xs text-gray-500 dark:text-gray-400">
-                        <span id="classroom-assignment-count">0 assignments</span>
-                        <span id="assignmentCount" class="hidden badge">0 items</span>
+
+            
+                    <div class="status-message mt-4" id="classroom-status"></div>
+                    
+                    <div id="classroom-info" class="classroom-info hidden bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mt-4">
+                        <h3 class="font-semibold text-gray-800 dark:text-white mb-2" id="classroom-name">Nama Classroom</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-300 mb-2" id="classroom-description">Deskripsi classroom akan muncul di sini</p>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">
+                            <span id="classroom-assignment-count">0 assignments</span>
+                            <span id="assignmentCount" class="hidden badge">0 items</span>
+                        </div>
                     </div>
                 </div>
             </div>
-            
-            <div class="status-message mt-4" id="classroom-status"></div>
-        </section>
 
-        <!-- Step 2: Assignment Selection -->
-        <section class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8 hidden" id="assignments-section">
-            <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-6">📝 Step 2: Pilih Assignment</h2>
-            
-            <div id="assignments-container" class="grid-responsive">
-                <!-- Assignment cards will be loaded here -->
-            </div>
-            
-            <div class="mt-6 flex justify-end">
-                <div id="download-controls" class="hidden flex gap-3">
-                    <button class="btn-secondary" id="preview-repositories" onclick="previewRepositories()">
-                        <span id="preview-text">Preview Repositories</span>
-                        <span id="preview-loading" class="loading hidden">Loading...</span>
-                    </button>
-                    <button class="btn-primary" id="download-assignment" onclick="downloadAndAnalyze()">
-                        <span id="download-text">Download & Analyze</span>
-                        <span id="download-loading" class="loading hidden">Loading...</span>
-                    </button>
-                </div>
-            </div>
-        </section>
-
-        <!-- Step 3: Progress -->
-        <section class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8 hidden" id="progress-section">
-            <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-6">⏳ Step 3: Processing</h2>
-            
-            <div class="space-y-4">
-                <div class="flex items-center justify-between">
-                    <span class="text-sm text-gray-600 dark:text-gray-300">Progress</span>
-                    <span id="progress-percent" class="text-sm font-medium text-gray-800 dark:text-white">0%</span>
-                </div>
-                <div id="progress-shell" class="progress-bar" style="display: none;">
-                    <div id="progress-fill" class="progress-fill"></div>
-                </div>
-                <p id="progress-text" class="text-sm text-gray-600 dark:text-gray-300">Preparing download...</p>
-            </div>
-            
-            <div class="status-message mt-4" id="progress-status"></div>
-        </section>
-
-        <!-- Results Section -->
-        <section class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 hidden" id="results-section">
-            <div class="flex items-center justify-between mb-6">
-                <h2 class="text-xl font-semibold text-gray-800 dark:text-white">📊 Results</h2>
-                <div class="flex gap-2">
-                    <button class="btn-outline" onclick="exportResults()">Export JSON</button>
-                    <button class="btn-primary" onclick="viewAnalysisResults()">Open Main View</button>
-                </div>
-            </div>
-            
-            <div id="analysis-summary" class="mb-6 text-sm text-gray-600 dark:text-gray-300">
-                <p>Analysis results akan muncul di sini setelah download selesai.</p>
-            </div>
-            
-            <div class="grid gap-6 md:grid-cols-2">
-                <div class="space-y-4">
-                    <h4 class="font-medium text-gray-800 dark:text-white">Downloaded Files</h4>
-                    <div id="downloaded-files" class="file-list">
-                        <p class="text-sm text-gray-500 dark:text-gray-400">No files downloaded yet.</p>
+            <!-- Middle Panel - Assignment Selection -->
+            <div class="col-span-12 lg:col-span-4 hidden" id="assignments-section">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 h-fit">
+                    <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-6">📝 Pilih Assignment</h2>
+                    
+                    <div id="assignments-container" class="space-y-3 mb-6 max-h-96 overflow-y-auto">
+                        <!-- Assignment cards will be loaded here -->
                     </div>
-                </div>
-                <div class="space-y-4">
-                    <h4 class="font-medium text-gray-800 dark:text-white">Quick Actions</h4>
-                    <div class="flex flex-wrap gap-2">
-                        <button class="btn-outline" onclick="runSimilarityCheck()">Run Similarity Check</button>
-                        <button class="btn-outline" onclick="exportResults()">Export Results</button>
-                        <button id="quick-sim-btn" class="btn-primary" style="display: none;" onclick="runSimilarityCheck()">Quick Similarity</button>
-                        <button id="view-results-btn" class="btn-secondary" style="display: none;" onclick="viewAnalysisResults()">View Results</button>
+                    
+                    <div id="download-controls" class="hidden space-y-3">
+                        <button class="w-full btn-secondary" id="preview-repositories" onclick="previewRepositories()">
+                            <span id="preview-text">Preview Repositories</span>
+                            <span id="preview-loading" class="loading hidden">Loading...</span>
+                        </button>
+                        <button class="w-full btn-primary" id="download-assignment" onclick="downloadAndAnalyze()">
+                            <span id="download-text">Download & Analyze</span>
+                            <span id="download-loading" class="loading hidden">Loading...</span>
+                        </button>
                     </div>
                 </div>
             </div>
-        </section>
+
+            <!-- Right Panel - Progress & Results -->
+            <div class="col-span-12 lg:col-span-4">
+                <!-- Progress Section -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6 hidden" id="progress-section">
+                    <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-6">⏳ Processing</h2>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-gray-600 dark:text-gray-300">Progress</span>
+                            <span id="progress-percent" class="text-sm font-medium text-gray-800 dark:text-white">0%</span>
+                        </div>
+                        <div id="progress-shell" class="progress-bar" style="display: none;">
+                            <div id="progress-fill" class="progress-fill"></div>
+                        </div>
+                        <p id="progress-text" class="text-sm text-gray-600 dark:text-gray-300">Preparing download...</p>
+                    </div>
+                    
+                    <div class="status-message mt-4" id="progress-status"></div>
+                </div>
+
+                <!-- Results Section -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 hidden" id="results-section">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-semibold text-gray-800 dark:text-white">📊 Results</h2>
+                        <div class="flex gap-2">
+                            <button class="btn-outline text-xs px-2 py-1" onclick="exportResults()">Export</button>
+                            <button class="btn-primary text-xs px-2 py-1" onclick="viewAnalysisResults()">Open Main</button>
+                        </div>
+                    </div>
+                    
+                    <div id="analysis-summary" class="mb-6 text-sm text-gray-600 dark:text-gray-300">
+                        <p>Analysis results akan muncul di sini setelah download selesai.</p>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="font-medium text-gray-800 dark:text-white mb-2">Downloaded Files</h4>
+                            <div id="downloaded-files" class="file-list max-h-40 overflow-y-auto">
+                                <p class="text-sm text-gray-500 dark:text-gray-400">No files downloaded yet.</p>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-800 dark:text-white mb-2">Quick Actions</h4>
+                            <div class="flex flex-wrap gap-2">
+                                <button class="btn-outline text-xs px-2 py-1" onclick="runSimilarityCheck()">Similarity Check</button>
+                                <button id="quick-sim-btn" class="btn-primary text-xs px-2 py-1" style="display: none;" onclick="runSimilarityCheck()">Quick Similarity</button>
+                                <button id="view-results-btn" class="btn-secondary text-xs px-2 py-1" style="display: none;" onclick="viewAnalysisResults()">View Results</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="/static/js/classroom.js"></script>

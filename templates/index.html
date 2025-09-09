@@ -10,118 +10,158 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 </head>
 <body class="min-h-screen bg-gray-50 dark:bg-gray-900">
-  <div class="max-w-4xl mx-auto p-6">
-    <!-- Header -->
-    <header class="text-center mb-8">
-      <h1 class="text-3xl font-bold text-gray-800 dark:text-white mb-2">Code Turnitin</h1>
-      <p class="text-gray-600 dark:text-gray-300 mb-6">Deteksi plagiarisme kode secara otomatis</p>
-      
-      <!-- Navigation -->
-      <div class="flex justify-center space-x-4 mb-8">
-        <a href="/auto-search" class="btn-primary">
-          🔍 Pencarian Otomatis
-        </a>
-        <a href="/classroom" class="btn-secondary">
-          🎓 GitHub Classroom
-        </a>
+  <!-- Top Navigation Bar -->
+  <nav class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
+    <div class="max-w-7xl mx-auto px-6 py-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-8">
+          <div>
+            <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Code Turnitin</h1>
+            <p class="text-sm text-gray-600 dark:text-gray-300">Deteksi plagiarisme kode secara otomatis</p>
+          </div>
+          <div class="hidden md:flex space-x-6">
+            <a href="/" class="text-blue-600 dark:text-blue-400 font-medium border-b-2 border-blue-600 pb-1">
+              🏠 Beranda
+            </a>
+            <a href="/auto-search" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium pb-1 border-b-2 border-transparent hover:border-blue-600 transition-all">
+              🔍 Pencarian Otomatis
+            </a>
+            <a href="/classroom" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium pb-1 border-b-2 border-transparent hover:border-blue-600 transition-all">
+              🎓 GitHub Classroom
+            </a>
+          </div>
+        </div>
         <button id="themeToggle" class="btn-secondary">🌙</button>
       </div>
-    </header>
+    </div>
+  </nav>
 
-    <!-- Form Input Repositori -->
-    <main class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8">
-      <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-6">Input Repositori</h2>
-      
-      <div class="grid md:grid-cols-2 gap-6 mb-6">
-        <!-- Repositori Mahasiswa -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            URL Repositori Mahasiswa
-          </label>
-          <div class="flex gap-2">
-            <input 
-              id="studentRepoUrlInput" 
-              type="text" 
-              placeholder="https://github.com/user/project" 
-              class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md 
-                     bg-white dark:bg-gray-700 text-gray-900 dark:text-white
-                     focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-            />
-            <button id="addStudentRepoUrl" class="btn-primary">Tambah</button>
-          </div>
-          <div id="studentRepoUrlList" class="mt-2 text-sm text-gray-500 dark:text-gray-400">
-            Belum ada URL ditambahkan
+  <!-- Main Content -->
+  <div class="max-w-7xl mx-auto px-6 py-8">
+    <!-- Dashboard Layout -->
+    <div class="grid grid-cols-12 gap-8">
+
+      <!-- Left Panel - Input Form -->
+      <div class="col-span-12 lg:col-span-5">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 h-fit">
+          <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-6">Input Repositori</h2>
+          
+          <div class="space-y-6">
+            <!-- Repositori Mahasiswa -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                URL Repositori Mahasiswa
+              </label>
+              <div class="flex gap-2">
+                <input 
+                  id="studentRepoUrlInput" 
+                  type="text" 
+                  placeholder="https://github.com/user/project" 
+                  class="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg 
+                         bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                         focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none
+                         text-sm"
+                />
+                <button id="addStudentRepoUrl" class="btn-primary whitespace-nowrap">Tambah</button>
+              </div>
+              <div id="studentRepoUrlList" class="mt-3 text-sm text-gray-500 dark:text-gray-400">
+                Belum ada URL ditambahkan
+              </div>
+            </div>
+
+            <!-- Repositori GitHub Pembanding -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                URL Repositori GitHub Pembanding
+              </label>
+              <div class="flex gap-2">
+                <input 
+                  id="githubUrlInput" 
+                  type="text" 
+                  placeholder="https://github.com/framework/lib" 
+                  class="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg 
+                         bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                         focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none
+                         text-sm"
+                />
+                <button id="addGithubUrl" class="btn-primary whitespace-nowrap">Tambah</button>
+              </div>
+              <div id="githubUrlList" class="mt-3 text-sm text-gray-500 dark:text-gray-400">
+                Belum ada URL ditambahkan
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-col space-y-3 pt-4 border-t border-gray-200 dark:border-gray-600">
+              <button id="runAnalysisButton" class="btn-primary w-full py-3 text-base font-medium">
+                🚀 Mulai Analisis
+              </button>
+              <p class="text-sm text-gray-500 dark:text-gray-400 text-center">
+                Masukkan repositori untuk membandingkan kemiripan kode
+              </p>
+            </div>
+
+            <div id="loadingIndicator" class="mt-4 text-sm text-blue-600 dark:text-blue-400 hidden">
+              🔄 Memproses analisis...
+            </div>
           </div>
         </div>
+      </div>
 
-        <!-- Repositori GitHub Pembanding -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            URL Repositori GitHub Pembanding
-          </label>
-          <div class="flex gap-2">
-            <input 
-              id="githubUrlInput" 
-              type="text" 
-              placeholder="https://github.com/framework/lib" 
-              class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md 
-                     bg-white dark:bg-gray-700 text-gray-900 dark:text-white
-                     focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-            />
-            <button id="addGithubUrl" class="btn-primary">Tambah</button>
+      <!-- Right Panel - Results -->
+      <div class="col-span-12 lg:col-span-7">
+        <!-- Results Panel -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 h-fit">
+          <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between">
+              <h2 class="text-xl font-semibold text-gray-800 dark:text-white">Hasil Deteksi Kemiripan</h2>
+              <span class="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-sm rounded-full">
+                Diurutkan berdasarkan kemiripan
+              </span>
+            </div>
           </div>
-          <div id="githubUrlList" class="mt-2 text-sm text-gray-500 dark:text-gray-400">
-            Belum ada URL ditambahkan
+          
+          <div id="results-section" class="hidden">
+            <div class="overflow-hidden">
+              <table class="w-full text-sm border-collapse">
+                <thead>
+                  <tr class="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+                    <th class="text-left p-4 font-medium text-gray-700 dark:text-gray-300">File Mahasiswa</th>
+                    <th class="text-left p-4 font-medium text-gray-700 dark:text-gray-300">File GitHub</th>
+                    <th class="text-center p-4 font-medium text-gray-700 dark:text-gray-300">Kemiripan</th>
+                    <th class="text-right p-4 font-medium text-gray-700 dark:text-gray-300">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="mhVsGhResults" class="divide-y divide-gray-200 dark:divide-gray-700">
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Empty State -->
+          <div id="empty-state" class="p-8 text-center">
+            <div class="text-6xl mb-4">🔍</div>
+            <h3 class="text-lg font-medium text-gray-800 dark:text-white mb-2">Belum ada analisis</h3>
+            <p class="text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
+              Tambahkan URL repositori di panel sebelah kiri dan klik "Mulai Analisis" untuk melihat hasil deteksi kemiripan.
+            </p>
+          </div>
+
+          <div id="noResults" class="hidden p-8 text-center">
+            <div class="text-6xl mb-4">✅</div>
+            <h3 class="text-lg font-medium text-gray-800 dark:text-white mb-2">Tidak ada kemiripan</h3>
+            <p class="text-gray-500 dark:text-gray-400">
+              Tidak ada kemiripan yang signifikan ditemukan antara repositori mahasiswa dan pembanding.
+            </p>
           </div>
         </div>
       </div>
-
-      <!-- Tombol Analisis -->
-      <div class="flex justify-between items-center pt-4 border-t border-gray-200 dark:border-gray-700">
-        <p class="text-sm text-gray-600 dark:text-gray-400">
-          Masukkan repositori untuk membandingkan kemiripan kode
-        </p>
-        <button id="runAnalysisButton" class="btn-primary">
-          Mulai Analisis
-        </button>
-      </div>
-      
-      <div id="loadingIndicator" class="mt-4 text-sm text-blue-600 dark:text-blue-400 hidden">
-        Memproses analisis...
-      </div>
-    </main>
-    <!-- Hasil -->
-    <section id="results-section" class="hidden bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-      <div class="flex items-center justify-between mb-6">
-        <h2 class="text-xl font-semibold text-gray-800 dark:text-white">Hasil Deteksi Kemiripan</h2>
-        <span class="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-sm rounded-full">
-          Diurutkan berdasarkan kemiripan
-        </span>
-      </div>
-      
-      <div class="overflow-x-auto">
-        <table class="w-full text-sm border-collapse">
-          <thead>
-            <tr class="border-b border-gray-200 dark:border-gray-700">
-              <th class="text-left p-3 font-medium text-gray-700 dark:text-gray-300">File Mahasiswa</th>
-              <th class="text-left p-3 font-medium text-gray-700 dark:text-gray-300">File GitHub</th>
-              <th class="text-left p-3 font-medium text-gray-700 dark:text-gray-300">Kemiripan (%)</th>
-              <th class="text-right p-3 font-medium text-gray-700 dark:text-gray-300">Aksi</th>
-            </tr>
-          </thead>
-          <tbody id="mhVsGhResults" class="divide-y divide-gray-200 dark:divide-gray-700">
-          </tbody>
-        </table>
-        <div id="noResults" class="hidden text-center text-gray-500 dark:text-gray-400 py-8">
-          Tidak ada kemiripan yang signifikan ditemukan.
-        </div>
-      </div>
-    </section>
+    </div>
   </div>
 
   <!-- Modal Perbandingan Kode -->
-  <div id="codeCompareModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
-    <div class="bg-white dark:bg-gray-800 rounded-lg w-full max-w-6xl max-h-[90vh] overflow-auto shadow-xl">
+  <div id="codeCompareModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-6 z-50 hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-lg w-full max-w-7xl max-h-[95vh] overflow-hidden shadow-xl">
       <div class="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700">
         <div>
           <h2 class="text-xl font-semibold text-gray-800 dark:text-white">Perbandingan Kode</h2>
@@ -135,23 +175,27 @@
         </button>
       </div>
       
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6">
-        <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-          <div class="px-4 py-2 bg-gray-50 dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300">
-            Kode Mahasiswa
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6 h-[calc(95vh-120px)] overflow-hidden">
+        <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden flex flex-col">
+          <div class="px-4 py-3 bg-gray-50 dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-600">
+            📄 Kode Mahasiswa
           </div>
-          <pre class="overflow-auto p-4 text-sm bg-gray-50 dark:bg-gray-900 max-h-96">
-            <code id="code-mhs" class="language-js"></code>
-          </pre>
+          <div class="flex-1 overflow-auto">
+            <pre class="p-4 text-sm bg-gray-50 dark:bg-gray-900 h-full">
+              <code id="code-mhs" class="language-js"></code>
+            </pre>
+          </div>
         </div>
         
-        <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-          <div class="px-4 py-2 bg-gray-50 dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300">
-            Kode GitHub
+        <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden flex flex-col">
+          <div class="px-4 py-3 bg-gray-50 dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-600">
+            🔗 Kode GitHub
           </div>
-          <pre class="overflow-auto p-4 text-sm bg-gray-50 dark:bg-gray-900 max-h-96">
-            <code id="code-gh" class="language-js"></code>
-          </pre>
+          <div class="flex-1 overflow-auto">
+            <pre class="p-4 text-sm bg-gray-50 dark:bg-gray-900 h-full">
+              <code id="code-gh" class="language-js"></code>
+            </pre>
+          </div>
         </div>
       </div>
     </div>
