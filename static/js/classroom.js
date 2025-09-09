@@ -52,25 +52,11 @@ function showStatus(message, type = 'info') {
 }
 
 function updateProgress(percentage, text) {
-    const shell = document.getElementById('progress-shell');
-    const fill = document.getElementById('progress-fill');
-    const label = document.getElementById('progress-text');
-    const percent = document.getElementById('progress-percent');
-    
-    if (!shell || !fill || !label || !percent) {
-        console.log('Progress elements not found, skipping progress update');
-        return;
-    }
-    
-    shell.style.display = 'flex';
-    fill.style.width = percentage + '%';
-    label.textContent = text || 'Processing...';
-    percent.textContent = Math.min(100, Math.max(0, Math.round(percentage))) + '%';
-    
+    // Simplified progress update
     if (percentage >= 100) {
-        setTimeout(() => { 
-            shell.style.display = 'none'; 
-        }, 2200);
+        showStatus('Download completed!', 'success');
+    } else {
+        showStatus(text || `Processing... ${Math.round(percentage)}%`, 'info');
     }
 }
 
@@ -141,19 +127,7 @@ async function loadClassroom() {
     }
 }
 
-function selectClassroom() {
-    const select = document.getElementById('classroom-select');
-    const selectedOption = select.options[select.selectedIndex];
-    
-    if (selectedOption.value) {
-        const classroom = JSON.parse(selectedOption.dataset.classroom);
-        displayClassroomInfo(classroom);
-        loadAssignments(classroom.id);
-        
-        // Update URL input for consistency
-        document.getElementById('classroom-url').value = classroom.id;
-    }
-}
+
 
 function displayClassroomInfo(classroom) {
     currentClassroom = classroom;
@@ -324,7 +298,30 @@ async function checkRepositoryAccess(repoFullName, assignmentTitle) {
         const data = await response.json();
         
         if (data.success) {
-            displayAccessInfo(data, assignmentTitle);
+            const accessibility = data.accessibility;
+            let statusMessage = '';
+            let statusType = 'info';
+            
+            switch (accessibility.status) {
+                case 'public':
+                case 'private_accessible':
+                    statusMessage = `✅ Repository "${assignmentTitle}" is accessible`;
+                    statusType = 'success';
+                    break;
+                case 'private_no_access':
+                    statusMessage = `❌ Repository "${assignmentTitle}" is private and cannot be accessed`;
+                    statusType = 'error';
+                    break;
+                case 'not_found':
+                    statusMessage = `❌ Repository "${assignmentTitle}" not found`;
+                    statusType = 'error';
+                    break;
+                default:
+                    statusMessage = `❓ Unknown access status for "${assignmentTitle}"`;
+                    statusType = 'error';
+            }
+            
+            showStatus(statusMessage, statusType);
         } else {
             showStatus(`Error checking access: ${data.error}`, 'error');
         }
@@ -334,124 +331,7 @@ async function checkRepositoryAccess(repoFullName, assignmentTitle) {
     }
 }
 
-function displayAccessInfo(accessData, assignmentTitle) {
-    const accessibility = accessData.accessibility;
-    const tokenInfo = accessData.token_info;
-    const accessGuide = accessData.access_guide;
-    
-    let statusClass = 'info';
-    let statusMessage = '';
-    let detailsHtml = '';
-    
-    switch (accessibility.status) {
-        case 'public':
-            statusClass = 'success';
-            statusMessage = `✅ Repository "${assignmentTitle}" is accessible (Public)`;
-            detailsHtml = '<p>This repository can be downloaded without any issues.</p>';
-            break;
-            
-        case 'private_accessible':
-            statusClass = 'success';
-            statusMessage = `✅ Repository "${assignmentTitle}" is accessible (Private)`;
-            detailsHtml = '<p>You have access to this private repository.</p>';
-            break;
-            
-        case 'private_no_access':
-            statusClass = 'error';
-            statusMessage = `❌ Repository "${assignmentTitle}" is private and cannot be accessed`;
-            detailsHtml = generateAccessGuideHtml(accessGuide);
-            break;
-            
-        case 'not_found':
-            statusClass = 'error';
-            statusMessage = `❌ Repository "${assignmentTitle}" not found or no access`;
-            detailsHtml = generateAccessGuideHtml(accessGuide);
-            break;
-            
-        default:
-            statusClass = 'error';
-            statusMessage = `❓ Unknown access status for "${assignmentTitle}"`;
-            detailsHtml = '<p>Unable to determine repository accessibility.</p>';
-    }
-    
-    // Add token information
-    if (tokenInfo.status === 'success') {
-        detailsHtml += `
-            <div class="mt-4 p-3 bg-gray-100 dark:bg-gray-700 rounded">
-                <h4 class="font-semibold">Token Information:</h4>
-                <p>User: ${tokenInfo.user}</p>
-                <p>Can access private repos: ${tokenInfo.can_access_private ? 'Yes' : 'No'}</p>
-                ${tokenInfo.recommendations.map(rec => `
-                    <div class="mt-2">
-                        <strong>${rec.issue}:</strong> ${rec.description}<br>
-                        <em>Solution: ${rec.solution}</em>
-                    </div>
-                `).join('')}
-            </div>
-        `;
-    }
-    
-    // Create modal or detailed status display
-    showDetailedStatus(statusMessage, detailsHtml, statusClass);
-}
 
-function generateAccessGuideHtml(accessGuide) {
-    if (!accessGuide) return '<p>No access guide available.</p>';
-    
-    return `
-        <div class="mt-3">
-            <h4 class="font-semibold mb-2">How to gain access:</h4>
-            ${accessGuide.access_methods.map((method, index) => `
-                <div class="mb-3 p-2 border-l-4 border-blue-300">
-                    <strong>Method ${index + 1}: ${method.method}</strong>
-                    <p class="text-sm">${method.description}</p>
-                    <ol class="text-sm mt-1 ml-4">
-                        ${method.steps.map(step => `<li>• ${step}</li>`).join('')}
-                    </ol>
-                </div>
-            `).join('')}
-            
-            <div class="mt-4">
-                <h5 class="font-semibold">Troubleshooting:</h5>
-                <ul class="text-sm mt-1">
-                    ${accessGuide.troubleshooting.map(tip => `<li>• ${tip}</li>`).join('')}
-                </ul>
-            </div>
-        </div>
-    `;
-}
-
-function showDetailedStatus(message, detailsHtml, type = 'info') {
-    const statusElement = document.getElementById('status-message');
-    if (!statusElement) {
-        console.log('Detailed Status:', message, 'Type:', type);
-        console.log('Details:', detailsHtml);
-        return;
-    }
-    
-    statusElement.className = `mt-4 p-3 rounded-md max-w-full`;
-    
-    if (type === 'success') {
-        statusElement.className += ' bg-green-100 text-green-800 border border-green-200';
-    } else if (type === 'error') {
-        statusElement.className += ' bg-red-100 text-red-800 border border-red-200';
-    } else {
-        statusElement.className += ' bg-blue-100 text-blue-800 border border-blue-200';
-    }
-    
-    statusElement.innerHTML = `
-        <div class="font-semibold mb-2">${message}</div>
-        <div class="text-sm">${detailsHtml}</div>
-    `;
-    statusElement.classList.remove('hidden');
-    
-    // Auto hide success messages after 10 seconds
-    if (type === 'success') {
-        setTimeout(() => {
-            statusElement.classList.add('hidden');
-        }, 10000);
-    }
-}
 
 async function previewRepositories() {
     if (!currentAssignment) {

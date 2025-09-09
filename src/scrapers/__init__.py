@@ -1,8 +1,7 @@
 # Scrapers package - Contains GitHub and web scraping functionality
 
 # Main interfaces
-from .github_classroom import GitHubClassroom
-from .github_classroom_refactored import GitHubClassroom as GitHubClassroomRefactored
+from .github_classroom_refactored import GitHubClassroom
 from .github_scraper import scrape_repo_files
 
 # Modular components (for advanced usage)
@@ -14,7 +13,6 @@ from .repository_downloader import RepositoryDownloader
 
 __all__ = [
     'GitHubClassroom',
-    'GitHubClassroomRefactored', 
     'scrape_repo_files',
     'GitHubAuth',
     'ClassroomAPI',
