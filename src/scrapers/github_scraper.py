@@ -133,8 +133,22 @@ def scrape_repo_files(repo_url, save_dir, allowed_extensions=('.js', '.py', '.ja
             repo_data = repo_response.json()
             default_branch = repo_data.get('default_branch', 'main')
             print(f"✅ Repository info - Default branch: {default_branch}")
+        elif repo_response.status_code == 404:
+            print(f"❌ Repository not found: {username}/{repo_name}")
+            print("   • Repository mungkin private atau tidak ada")
+            print("   • Periksa URL repository")
+            if not GITHUB_TOKEN:
+                print("   • Untuk repository private, set GITHUB_TOKEN environment variable")
+            return []
+        elif repo_response.status_code == 403:
+            print(f"❌ Access forbidden to repository: {username}/{repo_name}")
+            if not GITHUB_TOKEN:
+                print("   • Repository mungkin private, diperlukan GITHUB_TOKEN")
+            else:
+                print("   • Token mungkin tidak valid atau tidak memiliki akses")
+            return []
         else:
-            print(f"⚠️ Cannot get repo info, using default branch")
+            print(f"⚠️ Cannot get repo info (HTTP {repo_response.status_code}), using default branch")
             default_branch = 'main'
     except Exception as e:
         print(f"⚠️ Error getting repo info: {e}")

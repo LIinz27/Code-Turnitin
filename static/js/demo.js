@@ -1,0 +1,393 @@
+/**
+ * Demo Interface JavaScript
+ * Handles all client-side functionality for the Code Turnitin demo presentation
+ */
+
+function demoApp() {
+    return {
+        // Data properties
+        selectedLanguage: '',
+        searchQuery: '',
+        repositories: [],
+        selectedRepo: null,
+        selectedAlgorithm: 'jaccard',
+        candidates: [],
+        selectedCandidates: [],
+        analysisResults: null,
+        statistics: null,
+        isAnalyzing: false,
+        isLoadingCandidates: false,
+
+        // Algorithm descriptions
+        algorithmDescriptions: {
+            'jaccard': 'Uses winnowing algorithm with Jaccard similarity from existing codebase',
+            'cosine': 'Demo implementation of cosine similarity',
+            'levenshtein': 'Demo implementation of edit distance'
+        },
+
+        // Initialize the app
+        async init() {
+            console.log('Initializing Code Turnitin Demo...');
+            await this.loadRepositories();
+            await this.refreshStatistics();
+            
+            // Load sample repositories on startup
+            if (this.repositories.length > 0) {
+                this.selectRepository(this.repositories[0]);
+            }
+        },
+
+        // Load repositories based on current filters
+        async loadRepositories() {
+            try {
+                const params = new URLSearchParams();
+                if (this.selectedLanguage) params.append('language', this.selectedLanguage);
+                if (this.searchQuery) params.append('search', this.searchQuery);
+
+                const response = await fetch(`/demo/api/repositories?${params}`);
+                const data = await response.json();
+                
+                this.repositories = data.repositories || [];
+                console.log(`Loaded ${this.repositories.length} repositories`);
+            } catch (error) {
+                console.error('Error loading repositories:', error);
+                this.showNotification('Error loading repositories', 'error');
+            }
+        },
+
+        // Search repositories
+        async searchRepositories() {
+            // Debounce search
+            clearTimeout(this.searchTimeout);
+            this.searchTimeout = setTimeout(async () => {
+                await this.loadRepositories();
+            }, 300);
+        },
+
+        // Select a repository
+        async selectRepository(repo) {
+            this.selectedRepo = repo;
+            this.selectedCandidates = [];
+            this.analysisResults = null;
+            
+            console.log('Selected repository:', repo.name);
+            await this.loadCandidates();
+        },
+
+        // Load comparison candidates for selected repository
+        async loadCandidates() {
+            if (!this.selectedRepo) return;
+
+            this.isLoadingCandidates = true;
+            try {
+                const response = await fetch(`/demo/api/candidates?repo_id=${this.selectedRepo.id}&limit=50`);
+                const data = await response.json();
+                
+                this.candidates = data.candidates || [];
+                
+                // Auto-select first few candidates for demo
+                if (this.candidates.length > 0) {
+                    this.selectedCandidates = this.candidates.slice(0, Math.min(5, this.candidates.length))
+                                                             .map(c => c.id);
+                }
+                
+                console.log(`Loaded ${this.candidates.length} candidates`);
+            } catch (error) {
+                console.error('Error loading candidates:', error);
+                this.showNotification('Error loading comparison candidates', 'error');
+            } finally {
+                this.isLoadingCandidates = false;
+            }
+        },
+
+        // Perform similarity analysis
+        async performAnalysis() {
+            if (!this.selectedRepo || this.selectedCandidates.length === 0) {
+                this.showNotification('Please select a repository and comparison candidates', 'warning');
+                return;
+            }
+
+            this.isAnalyzing = true;
+            this.analysisResults = null;
+
+            try {
+                const requestData = {
+                    source_repo_id: this.selectedRepo.id,
+                    target_repo_ids: this.selectedCandidates,
+                    algorithm: this.selectedAlgorithm
+                };
+
+                console.log('Starting analysis with:', requestData);
+
+                const response = await fetch('/demo/api/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Analysis failed: ${response.statusText}`);
+                }
+
+                this.analysisResults = await response.json();
+                console.log('Analysis completed:', this.analysisResults);
+
+                // Show success notification
+                const avgSimilarity = (this.analysisResults.summary.average_similarity * 100).toFixed(1);
+                this.showNotification(`Analysis completed! Average similarity: ${avgSimilarity}%`, 'success');
+
+                // Refresh statistics after analysis
+                await this.refreshStatistics();
+
+            } catch (error) {
+                console.error('Error during analysis:', error);
+                this.showNotification(`Analysis failed: ${error.message}`, 'error');
+            } finally {
+                this.isAnalyzing = false;
+            }
+        },
+
+        // Refresh session statistics
+        async refreshStatistics() {
+            try {
+                const response = await fetch('/demo/api/statistics');
+                this.statistics = await response.json();
+                console.log('Statistics refreshed');
+            } catch (error) {
+                console.error('Error refreshing statistics:', error);
+            }
+        },
+
+        // Get algorithm description
+        getAlgorithmDescription() {
+            return this.algorithmDescriptions[this.selectedAlgorithm] || 
+                   'Advanced similarity detection algorithm';
+        },
+
+        // Get language color for display
+        getLanguageColor(language) {
+            const colors = {
+                'Java': 'bg-red-500',
+                'JavaScript': 'bg-yellow-500',
+                'Python': 'bg-green-500',
+                'TypeScript': 'bg-blue-500',
+                'HTML': 'bg-orange-500',
+                'CSS': 'bg-purple-500'
+            };
+            return colors[language] || 'bg-gray-500';
+        },
+
+        // Get similarity score color
+        getSimilarityColor(score) {
+            if (score >= 0.7) return 'text-red-600';
+            if (score >= 0.4) return 'text-yellow-600';
+            return 'text-green-600';
+        },
+
+        // Get similarity badge color
+        getSimilarityBadgeColor(level) {
+            const colors = {
+                'high': 'bg-red-100 text-red-800',
+                'medium': 'bg-yellow-100 text-yellow-800',
+                'low': 'bg-green-100 text-green-800'
+            };
+            return colors[level] || 'bg-gray-100 text-gray-800';
+        },
+
+        // Get similarity bar color
+        getSimilarityBarColor(score) {
+            if (score >= 0.7) return 'bg-red-500';
+            if (score >= 0.4) return 'bg-yellow-500';
+            return 'bg-green-500';
+        },
+
+        // Format uptime display
+        formatUptime(uptime) {
+            if (!uptime) return '0:00:00';
+            
+            // Parse uptime string (format: H:MM:SS)
+            const parts = uptime.split(':');
+            if (parts.length === 3) {
+                const hours = parseInt(parts[0]);
+                const minutes = parseInt(parts[1]);
+                const seconds = parseInt(parts[2]);
+                
+                if (hours > 0) {
+                    return `${hours}h ${minutes}m`;
+                } else if (minutes > 0) {
+                    return `${minutes}m ${seconds}s`;
+                } else {
+                    return `${seconds}s`;
+                }
+            }
+            
+            return uptime;
+        },
+
+        // Show notification to user
+        showNotification(message, type = 'info') {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-all duration-300 ${this.getNotificationColor(type)}`;
+            notification.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas ${this.getNotificationIcon(type)} mr-3"></i>
+                    <span>${message}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-current opacity-70 hover:opacity-100">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 5000);
+            
+            console.log(`Notification [${type}]: ${message}`);
+        },
+
+        // Get notification color classes
+        getNotificationColor(type) {
+            const colors = {
+                'success': 'bg-green-500 text-white',
+                'error': 'bg-red-500 text-white',
+                'warning': 'bg-yellow-500 text-white',
+                'info': 'bg-blue-500 text-white'
+            };
+            return colors[type] || colors.info;
+        },
+
+        // Get notification icon
+        getNotificationIcon(type) {
+            const icons = {
+                'success': 'fa-check-circle',
+                'error': 'fa-exclamation-circle',
+                'warning': 'fa-exclamation-triangle',
+                'info': 'fa-info-circle'
+            };
+            return icons[type] || icons.info;
+        },
+
+        // Export results (for presentation purposes)
+        exportResults() {
+            if (!this.analysisResults) {
+                this.showNotification('No analysis results to export', 'warning');
+                return;
+            }
+
+            const exportData = {
+                timestamp: new Date().toISOString(),
+                source_repository: this.analysisResults.source_repository,
+                algorithm: this.analysisResults.algorithm,
+                summary: this.analysisResults.summary,
+                comparisons: this.analysisResults.comparisons,
+                session_statistics: this.statistics
+            };
+
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `similarity_analysis_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            this.showNotification('Analysis results exported successfully', 'success');
+        },
+
+        // Select all candidates
+        selectAllCandidates() {
+            this.selectedCandidates = this.candidates.map(candidate => candidate.id);
+            this.showNotification(`Selected all ${this.candidates.length} candidates`, 'success');
+        },
+
+        // Deselect all candidates
+        deselectAllCandidates() {
+            this.selectedCandidates = [];
+            this.showNotification('Deselected all candidates', 'info');
+        },
+
+        // Get repository count info based on current filter
+        getRepositoryCountInfo() {
+            if (!this.selectedLanguage) {
+                return `${this.repositories.length} repositories (all languages)`;
+            }
+            return `${this.repositories.length} ${this.selectedLanguage} repositories`;
+        },
+
+        // Clear all selections (reset demo)
+        resetDemo() {
+            this.selectedRepo = null;
+            this.selectedCandidates = [];
+            this.analysisResults = null;
+            this.searchQuery = '';
+            this.selectedLanguage = '';
+            this.loadRepositories();
+            this.showNotification('Demo reset successfully', 'info');
+        }
+    };
+}
+
+// Global utility functions for demo
+window.demoUtils = {
+    // Format file size for display
+    formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    },
+
+    // Copy text to clipboard
+    async copyToClipboard(text) {
+        try {
+            await navigator.clipboard.writeText(text);
+            return true;
+        } catch (err) {
+            console.error('Failed to copy text: ', err);
+            return false;
+        }
+    },
+
+    // Download data as file
+    downloadFile(data, filename, type = 'text/plain') {
+        const blob = new Blob([data], { type });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+};
+
+// Initialize demo when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Code Turnitin Demo Interface Loaded');
+    
+    // Add keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        // Ctrl/Cmd + R for reset (prevent default browser refresh)
+        if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+            e.preventDefault();
+            if (window.Alpine && window.Alpine.raw) {
+                const demoComponent = window.Alpine.raw(document.querySelector('[x-data="demoApp()"]').__x.$data);
+                if (demoComponent && demoComponent.resetDemo) {
+                    demoComponent.resetDemo();
+                }
+            }
+        }
+    });
+});

@@ -1,0 +1,663 @@
+{
+  "metadata": {
+    "created": "2024-12-09",
+    "description": "Demo dataset for Code Turnitin thesis presentation",
+    "template": "prediksi-penjualan-telur-ayam",
+    "total_repositories": 30,
+    "language": "Java"
+  },
+  "repositories": {
+    "Java": [
+      {
+        "id": "prediksi-penjualan-telur-ayam-Abimanyu270-751245855",
+        "name": "prediksi-penjualan-telur-ayam-Abimanyu270-751245855",
+        "author": "Abimanyu270-751245855",
+        "description": "Prediksi penjualan telur ayam implementation by Abimanyu270-751245855",
+        "language": "Java",
+        "template": "prediksi-penjualan-telur-ayam",
+        "path": "data\\demo_repos\\prediksi-penjualan-telur-ayam-Abimanyu270-751245855",
+        "files": [
+          "Telur.java",
+          "Telur.class",
+          "README.md"
+        ],
+        "file_count": 4,
+        "size_kb": 1,
+        "file_breakdown": {
+          "java_files": 1,
+          "class_files": 1,
+          "other_files": 1,
+          "total_files": 4
+        }
+      },
+      {
+        "id": "prediksi-penjualan-telur-ayam-aframuawiya13-751164028",
+        "name": "prediksi-penjualan-telur-ayam-aframuawiya13-751164028",
+        "author": "aframuawiya13-751164028",
+        "description": "Prediksi penjualan telur ayam implementation by aframuawiya13-751164028",
+        "language": "Java",
+        "template": "prediksi-penjualan-telur-ayam",
+        "path": "data\\demo_repos\\prediksi-penjualan-telur-ayam-aframuawiya13-751164028",
+        "files": [
+          "prediksipenjualanTelurAyam.java",
+          "prediksipenjualanTelurAyam.class",
+          "README.md"
+        ],
+        "file_count": 4,
+        "size_kb": 1,
+        "file_breakdown": {
+          "java_files": 1,
+          "class_files": 1,
+          "other_files": 1,
+          "total_files": 4
+        }
+      },
+      {
+        "id": "prediksi-penjualan-telur-ayam-AliRahmatHidayatullah-754675462",
+        "name": "prediksi-penjualan-telur-ayam-AliRahmatHidayatullah-754675462",
+        "author": "AliRahmatHidayatullah-754675462",
+        "description": "Prediksi penjualan telur ayam implementation by AliRahmatHidayatullah-754675462",
+        "language": "Java",
+        "template": "prediksi-penjualan-telur-ayam",
+        "path": "data\\demo_repos\\prediksi-penjualan-telur-ayam-AliRahmatHidayatullah-754675462",
+        "files": [
+          "ayam.java",
+          "README.md"
+        ],
+        "file_count": 3,
+        "size_kb": 1,
+        "file_breakdown": {
+          "java_files": 1,
+          "class_files": 0,
+          "other_files": 1,
+          "total_files": 3
+        }
+      },
+      {
+        "id": "prediksi-penjualan-telur-ayam-Andimuhammdyusuf-753745702",
+        "name": "prediksi-penjualan-telur-ayam-Andimuhammdyusuf-753745702",
+        "author": "Andimuhammdyusuf-753745702",
+        "description": "Prediksi penjualan telur ayam implementation by Andimuhammdyusuf-753745702",
+        "language": "Java",
+        "template": "prediksi-penjualan-telur-ayam",
+        "path": "data\\demo_repos\\prediksi-penjualan-telur-ayam-Andimuhammdyusuf-753745702",
+        "files": [
+          "telur.java",
+          "README.md"
+        ],
+        "file_count": 3,
+        "size_kb": 1,
+        "file_breakdown": {
+          "java_files": 1,
+          "class_files": 0,
+          "other_files": 1,
+          "total_files": 3
+        }
+      },
+      {
+        "id": "prediksi-penjualan-telur-ayam-cingku23-750809220",
+        "name": "prediksi-penjualan-telur-ayam-cingku23-750809220",
+        "author": "cingku23-750809220",
+        "description": "Prediksi penjualan telur ayam implementation by cingku23-750809220",
+        "language": "Java",
+        "template": "prediksi-penjualan-telur-ayam",
+        "path": "data\\demo_repos\\prediksi-penjualan-telur-ayam-cingku23-750809220",
+        "files": [
+          "Naiva.java",
+          "Naiva.class",
+          "README.md"
+        ],
+        "file_count": 4,
+        "size_kb": 1,
+        "file_breakdown": {
+          "java_files": 1,
+          "class_files": 1,
+          "other_files": 1,
+          "total_files": 4
+        }
+      },
+      {
+        "id": "prediksi-penjualan-telur-ayam-devinaar44-751377267",
+        "name": "prediksi-penjualan-telur-ayam-devinaar44-751377267",
+        "author": "devinaar44-751377267",
+        "description": "Prediksi penjualan telur ayam implementation by devinaar44-751377267",
+        "language": "Java",
+        "template": "prediksi-penjualan-telur-ayam",
+        "path": "data\\demo_repos\\prediksi-penjualan-telur-ayam-devinaar44-751377267",
+        "files": [
+          "devina.java",
+          "devina.class",
+          "README.md"
+        ],
+        "file_count": 4,
+        "size_kb": 1,
+        "file_breakdown": {
+          "java_files": 1,
+          "class_files": 1,
+          "other_files": 1,
+          "total_files": 4
+        }
+      },
+      {
+        "id": "prediksi-penjualan-telur-ayam-Ekalyptuss-753920707",
+        "name": "prediksi-penjualan-telur-ayam-Ekalyptuss-753920707",
+        "author": "Ekalyptuss-753920707",
+        "description": "Prediksi penjualan telur ayam implementation by Ekalyptuss-753920707",
+        "language": "Java",
+        "template": "prediksi-penjualan-telur-ayam",
+        "path": "data\\demo_repos\\prediksi-penjualan-telur-ayam-Ekalyptuss-753920707",
+        "files": [
+          "PrediksiPenjualanTelurAyam.java",
+          "PrediksiPenjualanTelurAyam.class",
+          "README.md"
+        ],
+        "file_count": 4,
+        "size_kb": 1,
+        "file_breakdown": {
+          "java_files": 1,
+          "class_files": 1,
+          "other_files": 1,
+          "total_files": 4
+        }
+      },
+      {
+        "id": "prediksi-penjualan-telur-ayam-erwinmuh-751854746",
+        "name": "prediksi-penjualan-telur-ayam-erwinmuh-751854746",
+        "author": "erwinmuh-751854746",
+        "description": "Prediksi penjualan telur ayam implementation by erwinmuh-751854746",
+        "language": "Java",
+        "template": "prediksi-penjualan-telur-ayam",
+        "path": "data\\demo_repos\\prediksi-penjualan-telur-ayam-erwinmuh-751854746",
+        "files": [
+          "PenjualanTelurAyam.java",
+          "PenjualanTelurAyam.class",
+          "README.md"
+        ],
+        "file_count": 4,
+        "size_kb": 1,
+        "file_breakdown": {
+          "java_files": 1,
+          "class_files": 1,
+          "other_files": 1,
+          "total_files": 4
+        }
+      },
+      {
+        "id": "prediksi-penjualan-telur-ayam-Fitrarais-751246569",
+        "name": "prediksi-penjualan-telur-ayam-Fitrarais-751246569",
+        "author": "Fitrarais-751246569",
+        "description": "Prediksi penjualan telur ayam implementation by Fitrarais-751246569",
+        "language": "Java",
+        "template": "prediksi-penjualan-telur-ayam",
+        "path": "data\\demo_repos\\prediksi-penjualan-telur-ayam-Fitrarais-751246569",
+        "files": [
+          "telurayam.java",
+          "README.md"
+        ],
+        "file_count": 3,
+        "size_kb": 1,
+        "file_breakdown": {
+          "java_files": 1,
+          "class_files": 0,
+          "other_files": 1,
+          "total_files": 3
+        }
+      },
+      {
+        "id": "prediksi-penjualan-telur-ayam-hamsahh-752279123",
+        "name": "prediksi-penjualan-telur-ayam-hamsahh-752279123",
+        "author": "hamsahh-752279123",
+        "description": "Prediksi penjualan telur ayam implementation by hamsahh-752279123",
+        "language": "Java",
+        "template": "prediksi-penjualan-telur-ayam",
+        "path": "data\\demo_repos\\prediksi-penjualan-telur-ayam-hamsahh-752279123",
+        "files": [
+          "prediksipenjualantelurayam.java",
+          "prediksipenjualantelurayam.class",
+          "README.md"
+        ],
+        "file_count": 4,
+        "size_kb": 1,
+        "file_breakdown": {
+          "java_files": 1,
+          "class_files": 1,
+          "other_files": 1,
+          "total_files": 4
+        }
+      },
+      {
+        "id": "prediksi-penjualan-telur-ayam-Iryantegar-751239898",
+        "name": "prediksi-penjualan-telur-ayam-Iryantegar-751239898",
+        "author": "Iryantegar-751239898",
+        "description": "Prediksi penjualan telur ayam implementation by Iryantegar-751239898",
+        "language": "Java",
+        "template": "prediksi-penjualan-telur-ayam",
+        "path": "data\\demo_repos\\prediksi-penjualan-telur-ayam-Iryantegar-751239898",
+        "files": [
+          "lab.java",
+          "README.md"
+        ],
+        "file_count": 3,
+        "size_kb": 1,
+        "file_breakdown": {
+          "java_files": 1,
+          "class_files": 0,
+          "other_files": 1,
+          "total_files": 3
+        }
+      },
+      {
+        "id": "prediksi-penjualan-telur-ayam-khaidir16-752282066",
+        "name": "prediksi-penjualan-telur-ayam-khaidir16-752282066",
+        "author": "khaidir16-752282066",
+        "description": "Prediksi penjualan telur ayam implementation by khaidir16-752282066",
+        "language": "Java",
+        "template": "prediksi-penjualan-telur-ayam",
+        "path": "data\\demo_repos\\prediksi-penjualan-telur-ayam-khaidir16-752282066",
+        "files": [
+          "PrediksiPenjualanTelurAyam.java",
+          "PrediksiPenjualanTelurAyam.class",
+          "README.md"
+        ],
+        "file_count": 4,
+        "size_kb": 1,
+        "file_breakdown": {
+          "java_files": 1,
+          "class_files": 1,
+          "other_files": 1,
+          "total_files": 4
+        }
+      },
+      {
+        "id": "prediksi-penjualan-telur-ayam-MUHALIIMRAN-751236742",
+        "name": "prediksi-penjualan-telur-ayam-MUHALIIMRAN-751236742",
+        "author": "MUHALIIMRAN-751236742",
+        "description": "Prediksi penjualan telur ayam implementation by MUHALIIMRAN-751236742",
+        "language": "Java",
+        "template": "prediksi-penjualan-telur-ayam",
+        "path": "data\\demo_repos\\prediksi-penjualan-telur-ayam-MUHALIIMRAN-751236742",
+        "files": [
+          "imran.java",
+          "penjualantelur.java",
+          "imran.class",
+          "README.md"
+        ],
+        "file_count": 5,
+        "size_kb": 2,
+        "file_breakdown": {
+          "java_files": 2,
+          "class_files": 1,
+          "other_files": 1,
+          "total_files": 5
+        }
+      },
+      {
+        "id": "prediksi-penjualan-telur-ayam-muhiqbaltawakkal-761813670",
+        "name": "prediksi-penjualan-telur-ayam-muhiqbaltawakkal-761813670",
+        "author": "muhiqbaltawakkal-761813670",
+        "description": "Prediksi penjualan telur ayam implementation by muhiqbaltawakkal-761813670",
+        "language": "Java",
+        "template": "prediksi-penjualan-telur-ayam",
+        "path": "data\\demo_repos\\prediksi-penjualan-telur-ayam-muhiqbaltawakkal-761813670",
+        "files": [
+          "ayam.java",
+          "README.md"
+        ],
+        "file_count": 3,
+        "size_kb": 1,
+        "file_breakdown": {
+          "java_files": 1,
+          "class_files": 0,
+          "other_files": 1,
+          "total_files": 3
+        }
+      },
+      {
+        "id": "prediksi-penjualan-telur-ayam-Musdalipa13-751653504",
+        "name": "prediksi-penjualan-telur-ayam-Musdalipa13-751653504",
+        "author": "Musdalipa13-751653504",
+        "description": "Prediksi penjualan telur ayam implementation by Musdalipa13-751653504",
+        "language": "Java",
+        "template": "prediksi-penjualan-telur-ayam",
+        "path": "data\\demo_repos\\prediksi-penjualan-telur-ayam-Musdalipa13-751653504",
+        "files": [
+          "PenjualanTelurAyam.java",
+          "README.md"
+        ],
+        "file_count": 3,
+        "size_kb": 1,
+        "file_breakdown": {
+          "java_files": 1,
+          "class_files": 0,
+          "other_files": 1,
+          "total_files": 3
+        }
+      },
+      {
+        "id": "prediksi-penjualan-telur-ayam-mustika1f-751642540",
+        "name": "prediksi-penjualan-telur-ayam-mustika1f-751642540",
+        "author": "mustika1f-751642540",
+        "description": "Prediksi penjualan telur ayam implementation by mustika1f-751642540",
+        "language": "Java",
+        "template": "prediksi-penjualan-telur-ayam",
+        "path": "data\\demo_repos\\prediksi-penjualan-telur-ayam-mustika1f-751642540",
+        "files": [
+          "Penjualantelurayam.java",
+          "Penjualantelurayam.class",
+          "README.md"
+        ],
+        "file_count": 4,
+        "size_kb": 1,
+        "file_breakdown": {
+          "java_files": 1,
+          "class_files": 1,
+          "other_files": 1,
+          "total_files": 4
+        }
+      },
+      {
+        "id": "prediksi-penjualan-telur-ayam-nachrief-750217201",
+        "name": "prediksi-penjualan-telur-ayam-nachrief-750217201",
+        "author": "nachrief-750217201",
+        "description": "Prediksi penjualan telur ayam implementation by nachrief-750217201",
+        "language": "Java",
+        "template": "prediksi-penjualan-telur-ayam",
+        "path": "data\\demo_repos\\prediksi-penjualan-telur-ayam-nachrief-750217201",
+        "files": [
+          "Nachrieflab4.java",
+          "README.md"
+        ],
+        "file_count": 4,
+        "size_kb": 1,
+        "file_breakdown": {
+          "java_files": 1,
+          "class_files": 0,
+          "other_files": 1,
+          "total_files": 4
+        }
+      },
+      {
+        "id": "prediksi-penjualan-telur-ayam-nadillagetalia-750138416",
+        "name": "prediksi-penjualan-telur-ayam-nadillagetalia-750138416",
+        "author": "nadillagetalia-750138416",
+        "description": "Prediksi penjualan telur ayam implementation by nadillagetalia-750138416",
+        "language": "Java",
+        "template": "prediksi-penjualan-telur-ayam",
+        "path": "data\\demo_repos\\prediksi-penjualan-telur-ayam-nadillagetalia-750138416",
+        "files": [
+          "nadilla.java",
+          "README.md"
+        ],
+        "file_count": 3,
+        "size_kb": 1,
+        "file_breakdown": {
+          "java_files": 1,
+          "class_files": 0,
+          "other_files": 1,
+          "total_files": 3
+        }
+      },
+      {
+        "id": "prediksi-penjualan-telur-ayam-NaufalWell-752102494",
+        "name": "prediksi-penjualan-telur-ayam-NaufalWell-752102494",
+        "author": "NaufalWell-752102494",
+        "description": "Prediksi penjualan telur ayam implementation by NaufalWell-752102494",
+        "language": "Java",
+        "template": "prediksi-penjualan-telur-ayam",
+        "path": "data\\demo_repos\\prediksi-penjualan-telur-ayam-NaufalWell-752102494",
+        "files": [
+          "PenjualanTelurAyam.java",
+          "PenjualanTelurAyam.class",
+          "README.md"
+        ],
+        "file_count": 4,
+        "size_kb": 1,
+        "file_breakdown": {
+          "java_files": 1,
+          "class_files": 1,
+          "other_files": 1,
+          "total_files": 4
+        }
+      },
+      {
+        "id": "prediksi-penjualan-telur-ayam-nurdianif-750712122",
+        "name": "prediksi-penjualan-telur-ayam-nurdianif-750712122",
+        "author": "nurdianif-750712122",
+        "description": "Prediksi penjualan telur ayam implementation by nurdianif-750712122",
+        "language": "Java",
+        "template": "prediksi-penjualan-telur-ayam",
+        "path": "data\\demo_repos\\prediksi-penjualan-telur-ayam-nurdianif-750712122",
+        "files": [
+          "nurdian.java",
+          "nurdian.class",
+          "README.md"
+        ],
+        "file_count": 4,
+        "size_kb": 1,
+        "file_breakdown": {
+          "java_files": 1,
+          "class_files": 1,
+          "other_files": 1,
+          "total_files": 4
+        }
+      },
+      {
+        "id": "prediksi-penjualan-telur-ayam-nurhaeni08-750137752",
+        "name": "prediksi-penjualan-telur-ayam-nurhaeni08-750137752",
+        "author": "nurhaeni08-750137752",
+        "description": "Prediksi penjualan telur ayam implementation by nurhaeni08-750137752",
+        "language": "Java",
+        "template": "prediksi-penjualan-telur-ayam",
+        "path": "data\\demo_repos\\prediksi-penjualan-telur-ayam-nurhaeni08-750137752",
+        "files": [
+          "PenjualanTelurAyam.java",
+          "README.md"
+        ],
+        "file_count": 3,
+        "size_kb": 2,
+        "file_breakdown": {
+          "java_files": 1,
+          "class_files": 0,
+          "other_files": 1,
+          "total_files": 3
+        }
+      },
+      {
+        "id": "prediksi-penjualan-telur-ayam-nurqamariahyunus-750132895",
+        "name": "prediksi-penjualan-telur-ayam-nurqamariahyunus-750132895",
+        "author": "nurqamariahyunus-750132895",
+        "description": "Prediksi penjualan telur ayam implementation by nurqamariahyunus-750132895",
+        "language": "Java",
+        "template": "prediksi-penjualan-telur-ayam",
+        "path": "data\\demo_repos\\prediksi-penjualan-telur-ayam-nurqamariahyunus-750132895",
+        "files": [
+          "PrediksiPenjualanTelurAyam.java",
+          "README.md"
+        ],
+        "file_count": 3,
+        "size_kb": 1,
+        "file_breakdown": {
+          "java_files": 1,
+          "class_files": 0,
+          "other_files": 1,
+          "total_files": 3
+        }
+      },
+      {
+        "id": "prediksi-penjualan-telur-ayam-PaimonK-751233445",
+        "name": "prediksi-penjualan-telur-ayam-PaimonK-751233445",
+        "author": "PaimonK-751233445",
+        "description": "Prediksi penjualan telur ayam implementation by PaimonK-751233445",
+        "language": "Java",
+        "template": "prediksi-penjualan-telur-ayam",
+        "path": "data\\demo_repos\\prediksi-penjualan-telur-ayam-PaimonK-751233445",
+        "files": [
+          "ikan.java",
+          "README.md"
+        ],
+        "file_count": 3,
+        "size_kb": 1,
+        "file_breakdown": {
+          "java_files": 1,
+          "class_files": 0,
+          "other_files": 1,
+          "total_files": 3
+        }
+      },
+      {
+        "id": "prediksi-penjualan-telur-ayam-Ramadhinianjani-761767529",
+        "name": "prediksi-penjualan-telur-ayam-Ramadhinianjani-761767529",
+        "author": "Ramadhinianjani-761767529",
+        "description": "Prediksi penjualan telur ayam implementation by Ramadhinianjani-761767529",
+        "language": "Java",
+        "template": "prediksi-penjualan-telur-ayam",
+        "path": "data\\demo_repos\\prediksi-penjualan-telur-ayam-Ramadhinianjani-761767529",
+        "files": [
+          "penjualanTelurAyam.java",
+          "penjualanTelurAyam.class",
+          "README.md"
+        ],
+        "file_count": 4,
+        "size_kb": 1,
+        "file_breakdown": {
+          "java_files": 1,
+          "class_files": 1,
+          "other_files": 1,
+          "total_files": 4
+        }
+      },
+      {
+        "id": "prediksi-penjualan-telur-ayam-Rezkyamaliahrusli-751666219",
+        "name": "prediksi-penjualan-telur-ayam-Rezkyamaliahrusli-751666219",
+        "author": "Rezkyamaliahrusli-751666219",
+        "description": "Prediksi penjualan telur ayam implementation by Rezkyamaliahrusli-751666219",
+        "language": "Java",
+        "template": "prediksi-penjualan-telur-ayam",
+        "path": "data\\demo_repos\\prediksi-penjualan-telur-ayam-Rezkyamaliahrusli-751666219",
+        "files": [
+          "penjualantelurayam.java",
+          "README.md"
+        ],
+        "file_count": 3,
+        "size_kb": 1,
+        "file_breakdown": {
+          "java_files": 1,
+          "class_files": 0,
+          "other_files": 1,
+          "total_files": 3
+        }
+      },
+      {
+        "id": "prediksi-penjualan-telur-ayam-riskyakbar15-750163828",
+        "name": "prediksi-penjualan-telur-ayam-riskyakbar15-750163828",
+        "author": "riskyakbar15-750163828",
+        "description": "Prediksi penjualan telur ayam implementation by riskyakbar15-750163828",
+        "language": "Java",
+        "template": "prediksi-penjualan-telur-ayam",
+        "path": "data\\demo_repos\\prediksi-penjualan-telur-ayam-riskyakbar15-750163828",
+        "files": [
+          "Projek.java",
+          "README.md"
+        ],
+        "file_count": 3,
+        "size_kb": 1,
+        "file_breakdown": {
+          "java_files": 1,
+          "class_files": 0,
+          "other_files": 1,
+          "total_files": 3
+        }
+      },
+      {
+        "id": "prediksi-penjualan-telur-ayam-rizkiamaliarasyid-753596817",
+        "name": "prediksi-penjualan-telur-ayam-rizkiamaliarasyid-753596817",
+        "author": "rizkiamaliarasyid-753596817",
+        "description": "Prediksi penjualan telur ayam implementation by rizkiamaliarasyid-753596817",
+        "language": "Java",
+        "template": "prediksi-penjualan-telur-ayam",
+        "path": "data\\demo_repos\\prediksi-penjualan-telur-ayam-rizkiamaliarasyid-753596817",
+        "files": [
+          "PrediksiPenjualanTelurAyam.java",
+          "PrediksiPenjualanTelurAyam.class",
+          "README.md"
+        ],
+        "file_count": 5,
+        "size_kb": 1,
+        "file_breakdown": {
+          "java_files": 1,
+          "class_files": 1,
+          "other_files": 1,
+          "total_files": 5
+        }
+      },
+      {
+        "id": "prediksi-penjualan-telur-ayam-syarfazizh-750145645",
+        "name": "prediksi-penjualan-telur-ayam-syarfazizh-750145645",
+        "author": "syarfazizh-750145645",
+        "description": "Prediksi penjualan telur ayam implementation by syarfazizh-750145645",
+        "language": "Java",
+        "template": "prediksi-penjualan-telur-ayam",
+        "path": "data\\demo_repos\\prediksi-penjualan-telur-ayam-syarfazizh-750145645",
+        "files": [
+          "PrediksiPenjualanTelurAyam.java",
+          "syarfazizh.java",
+          "README.md"
+        ],
+        "file_count": 4,
+        "size_kb": 2,
+        "file_breakdown": {
+          "java_files": 2,
+          "class_files": 0,
+          "other_files": 1,
+          "total_files": 4
+        }
+      },
+      {
+        "id": "prediksi-penjualan-telur-ayam-Wannn15-752144348",
+        "name": "prediksi-penjualan-telur-ayam-Wannn15-752144348",
+        "author": "Wannn15-752144348",
+        "description": "Prediksi penjualan telur ayam implementation by Wannn15-752144348",
+        "language": "Java",
+        "template": "prediksi-penjualan-telur-ayam",
+        "path": "data\\demo_repos\\prediksi-penjualan-telur-ayam-Wannn15-752144348",
+        "files": [
+          "wannn15.java",
+          "wannn15.class",
+          "README.md"
+        ],
+        "file_count": 4,
+        "size_kb": 1,
+        "file_breakdown": {
+          "java_files": 1,
+          "class_files": 1,
+          "other_files": 1,
+          "total_files": 4
+        }
+      },
+      {
+        "id": "prediksi-penjualan-telur-ayam-whdini11-759680451",
+        "name": "prediksi-penjualan-telur-ayam-whdini11-759680451",
+        "author": "whdini11-759680451",
+        "description": "Prediksi penjualan telur ayam implementation by whdini11-759680451",
+        "language": "Java",
+        "template": "prediksi-penjualan-telur-ayam",
+        "path": "data\\demo_repos\\prediksi-penjualan-telur-ayam-whdini11-759680451",
+        "files": [
+          "waha.java",
+          "waha.class",
+          "README.md"
+        ],
+        "file_count": 4,
+        "size_kb": 1,
+        "file_breakdown": {
+          "java_files": 1,
+          "class_files": 1,
+          "other_files": 1,
+          "total_files": 4
+        }
+      }
+    ],
+    "JavaScript": [],
+    "Python": []
+  }
+}

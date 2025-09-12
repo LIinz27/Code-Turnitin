@@ -5,6 +5,12 @@ data/mahasiswa/
 data/github/
 data/classroom/
 
+# Ignore demo repositories (contains git submodules)
+data/demo_repos/
+
+# Ignore cache files
+data/cache/
+
 # Ignore Python virtual environment directory
 .venv/
 

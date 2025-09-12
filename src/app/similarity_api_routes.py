@@ -42,16 +42,39 @@ def analyze_code():
 
         # Download student repositories
         uploaded_student_files = []
+        failed_repos = []
+        
         for repo_url in student_repo_urls:
             print(f"Mulai scraping repositori mahasiswa: {repo_url}")
-            downloaded = scrape_repo_files(repo_url, current_app.config['UPLOAD_FOLDER_MAHASISWA'])
-            uploaded_student_files.extend(downloaded)
-            print(f"Selesai scraping {repo_url}. Total file dari repo ini: {len(downloaded)}")
+            try:
+                downloaded = scrape_repo_files(repo_url, current_app.config['UPLOAD_FOLDER_MAHASISWA'])
+                uploaded_student_files.extend(downloaded)
+                print(f"Selesai scraping {repo_url}. Total file dari repo ini: {len(downloaded)}")
+                
+                if len(downloaded) == 0:
+                    failed_repos.append(repo_url)
+                    
+            except Exception as e:
+                print(f"Error scraping {repo_url}: {e}")
+                failed_repos.append(repo_url)
         
         if not uploaded_student_files:
+            error_msg = "Gagal mengunduh file kode dari repositori mahasiswa yang diberikan."
+            
+            if failed_repos:
+                error_msg += "\n\nKemungkinan penyebab:"
+                error_msg += "\n• Repository adalah private dan memerlukan GitHub token"
+                error_msg += "\n• URL repository tidak valid"
+                error_msg += "\n• Repository kosong atau tidak mengandung file kode yang didukung"
+                error_msg += "\n• Masalah koneksi internet"
+                
+                if len(failed_repos) > 0:
+                    error_msg += f"\n\nRepository yang gagal: {', '.join(failed_repos)}"
+            
             return jsonify({
-                "error": "Gagal mengunduh file kode dari repositori mahasiswa yang diberikan. "
-                         "Pastikan URL repositori benar dan mengandung file kode yang didukung."
+                "error": error_msg,
+                "failed_repos": failed_repos,
+                "suggestion": "Untuk repository private, tambahkan GITHUB_TOKEN ke environment variables atau gunakan repository public."
             }), 400
 
         # Parse GitHub repository URLs
