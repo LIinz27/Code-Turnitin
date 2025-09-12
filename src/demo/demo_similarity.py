@@ -93,50 +93,61 @@ class DemoSimilarityAnalyzer:
     
     def _get_real_code_from_downloaded_repo(self, repo_name: str) -> Optional[str]:
         """Get real code content from downloaded repository."""
-        if not self.downloaded_repos_info or not repo_name:
+        if not repo_name:
             return None
         
         try:
-            # Look for matching repository in downloaded info
-            matching_repo = None
-            for repo_info in self.downloaded_repos_info.values():
-                if repo_info.get('name') == repo_name or repo_name in repo_info.get('name', ''):
-                    matching_repo = repo_info
-                    break
-            
-            if not matching_repo:
+            # Look for repository directory in data/demo_repos
+            base_demo_path = os.path.join("data", "demo_repos")
+            if not os.path.exists(base_demo_path):
+                print(f"DEBUG: Base demo path not found: {base_demo_path}")
                 return None
             
-            # Get the local path of the downloaded repository
-            local_path = matching_repo.get('local_path')
-            if not local_path or not os.path.exists(local_path):
+            # Try to find EXACT matching directory
+            repo_dir = None
+            target_dir = os.path.join(base_demo_path, repo_name)
+            
+            if os.path.exists(target_dir) and os.path.isdir(target_dir):
+                repo_dir = target_dir
+                print(f"DEBUG: Found exact match directory: {repo_dir}")
+            else:
+                print(f"DEBUG: Exact directory not found: {target_dir}")
                 return None
             
             # Read code files from the repository
             code_content = []
-            for root, dirs, files in os.walk(local_path):
+            file_count = 0
+            
+            print(f"DEBUG: Scanning directory: {repo_dir}")
+            for root, dirs, files in os.walk(repo_dir):
                 # Skip git and other hidden directories
                 dirs[:] = [d for d in dirs if not d.startswith('.')]
                 
                 for file in files:
-                    if file.endswith(('.py', '.java', '.js', '.cpp', '.c', '.h')):
+                    if file.endswith(('.py', '.java', '.js', '.cpp', '.c', '.h', '.html', '.css')):
                         file_path = os.path.join(root, file)
+                        print(f"DEBUG: Processing file: {file_path}")
                         try:
                             with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                                content = f.read()
-                                if content.strip():  # Only include non-empty files
-                                    code_content.append(f"// File: {file}\n{content}\n")
+                                content = f.read().strip()
+                                if content and len(content) > 50:  # Only include substantial files
+                                    relative_path = os.path.relpath(file_path, repo_dir)
+                                    code_content.append(f"// File: {relative_path}\n{content}\n")
+                                    file_count += 1
+                                    print(f"DEBUG: Added file: {relative_path} ({len(content)} chars)")
                         except Exception as e:
-                            logger.warning(f"Could not read file {file_path}: {e}")
+                            print(f"DEBUG: Could not read file {file_path}: {e}")
                             continue
             
             if code_content:
                 combined_code = "\n".join(code_content)
-                logger.info(f"Retrieved {len(code_content)} files from {repo_name}")
+                print(f"DEBUG: Successfully retrieved {file_count} files from repository: {repo_name} (total chars: {len(combined_code)})")
                 return combined_code
-            
+            else:
+                print(f"DEBUG: No substantial code files found in: {repo_name}")
+                
         except Exception as e:
-            logger.error(f"Error retrieving real code from {repo_name}: {e}")
+            print(f"DEBUG: Error retrieving real code from {repo_name}: {e}")
         
         return None
     
@@ -628,17 +639,27 @@ module.exports = {{ processData, validateInput }};
         repo_id = repo.get('id')
         repo_name = repo.get('name', '')
         
+        print(f"DEBUG: Getting code for repo: {repo_name} (ID: {repo_id})")
+        
         # First try to get real code from downloaded repositories
         real_code = self._get_real_code_from_downloaded_repo(repo_name)
         if real_code:
-            logger.info(f"Using real code from downloaded repository: {repo_name}")
+            print(f"DEBUG: Using real code from {repo_name} - Length: {len(real_code)} chars")
+            print(f"DEBUG: First 100 chars: {real_code[:100]}...")
             return real_code
+        else:
+            print(f"DEBUG: Real code not found for {repo_name}, using mock code")
         
         # Fall back to cached/generated mock code
         if repo_id not in self.mock_code_cache:
+            print(f"DEBUG: Generating new mock code for {repo_id}")
             self.mock_code_cache[repo_id] = self.generate_mock_code(repo)
+        else:
+            print(f"DEBUG: Using cached mock code for {repo_id}")
         
-        return self.mock_code_cache[repo_id]
+        mock_code = self.mock_code_cache[repo_id]
+        print(f"DEBUG: Mock code length: {len(mock_code)} chars")
+        return mock_code
     
     def get_available_algorithms(self) -> List[Dict[str, str]]:
         """Get list of available similarity algorithms."""
