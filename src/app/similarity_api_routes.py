@@ -1,12 +1,11 @@
 """
 Similarity Analysis API Routes
-Handles code similarity analysis and auto-search functionality
+Handles code similarity analysis functionality
 """
 import json
 import os
 from flask import Blueprint, request, jsonify, current_app
 from ..scrapers.github_scraper import scrape_repo_files
-from ..scrapers.github_search import auto_search_candidate_repos, load_cache
 from ..algorithms.similarity_checker import get_similar_blocks
 from .file_utils import FileManager
 
@@ -97,93 +96,6 @@ def analyze_code():
         }), 500
 
 
-@similarity_api_bp.route('/auto-search/init', methods=['POST'])
-def auto_search_init():
-    """
-    Initialize auto search for candidate repositories
-    """
-    try:
-        data = request.get_json(force=True, silent=True) or {}
-        student_repo_urls = data.get('student_repo_urls') or []
-        
-        if not isinstance(student_repo_urls, list) or not student_repo_urls:
-            return jsonify({
-                'error': 'student_repo_urls harus berupa list dan tidak boleh kosong'
-            }), 400
-
-        # Clear student files
-        FileManager.clear_student_files()
-        
-        # Perform auto search
-        cache_id, candidates = auto_search_candidate_repos(
-            student_repo_urls, 
-            current_app.config['UPLOAD_FOLDER_MAHASISWA'], 
-            cache_dir=current_app.config.get('CACHE_DIR', 'data/cache'), 
-            top_n=5
-        )
-        
-        # Format response
-        response_candidates = []
-        for c in candidates:
-            response_candidates.append({
-                'full_name': c['full_name'],
-                'score': c['score'],
-                'matched_tokens': c['matched_tokens'],
-                'files': c['files'],
-                'size_kb': c['size_kb'],
-                'stars': c['stars'],
-                'token_overlap': c.get('token_overlap'),
-                'file_overlap': c.get('file_overlap')
-            })
-            
-        return jsonify({
-            'cache_id': cache_id, 
-            'candidates': response_candidates
-        }), 200
-        
-    except Exception as e:
-        print(f"Error auto_search_candidate_repos: {e}")
-        return jsonify({
-            'error': 'Gagal melakukan pencarian otomatis', 
-            'details': str(e)
-        }), 500
-
-
-@similarity_api_bp.route('/auto-search/confirm', methods=['POST'])
-def auto_search_confirm():
-    """
-    Confirm selected repositories from auto search
-    """
-    try:
-        data = request.get_json(force=True, silent=True) or {}
-        cache_id = data.get('cache_id')
-        selected_repos = data.get('selected_repos') or []
-        
-        if not cache_id or not selected_repos:
-            return jsonify({
-                'error': 'cache_id dan selected_repos wajib diisi'
-            }), 400
-
-        # Load cache
-        cache_payload = load_cache(
-            cache_id, 
-            current_app.config.get('CACHE_DIR', 'data/cache')
-        )
-        
-        if not cache_payload:
-            return jsonify({'error': 'Cache tidak ditemukan atau sudah kedaluwarsa'}), 400
-
-        # Process confirmed repositories
-        return _process_auto_search_confirmation(cache_payload, selected_repos)
-        
-    except Exception as e:
-        print(f"Error in auto_search_confirm: {e}")
-        return jsonify({
-            'error': 'Gagal memproses konfirmasi pencarian otomatis', 
-            'details': str(e)
-        }), 500
-
-
 def _perform_similarity_analysis(student_files, github_files):
     """
     Perform similarity analysis between student and GitHub files
@@ -232,27 +144,6 @@ def _perform_similarity_analysis(student_files, github_files):
     return results
 
 
-def _process_auto_search_confirmation(cache_payload, selected_repos):
-    """
-    Process confirmation of auto search results
-    
-    Args:
-        cache_payload: Cached search data
-        selected_repos: List of selected repository names
-        
-    Returns:
-        Flask response
-    """
-    # Implementation for processing auto search confirmation
-    # This would include downloading selected repos and performing analysis
-    
-    # For now, return a simple success response
-    return jsonify({
-        'message': 'Repositori terpilih berhasil diproses',
-        'selected_count': len(selected_repos)
-    }), 200
-
-
 # Legacy endpoints for backward compatibility
 @similarity_api_bp.route('/analyze_code', methods=['POST'])
 def analyze_code_legacy():
@@ -272,7 +163,3 @@ def register_similarity_api_routes(app):
     # Register legacy routes at root level for backward compatibility
     app.add_url_rule('/analyze_code', 'analyze_code_legacy', 
                      analyze_code, methods=['POST'])
-    app.add_url_rule('/auto_search/init', 'auto_search_init_legacy',
-                     auto_search_init, methods=['POST'])
-    app.add_url_rule('/auto_search/confirm', 'auto_search_confirm_legacy',
-                     auto_search_confirm, methods=['POST'])

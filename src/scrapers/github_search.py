@@ -208,32 +208,3 @@ def score_and_select(repos, features, top_n=5):
         scored.append(r)
     scored.sort(key=lambda x: x['score'], reverse=True)
     return scored[:top_n]
-
-def auto_search_candidate_repos(student_repo_urls, mahasiswa_dir, cache_dir, top_n=5):
-    deadline = time.time() + SEARCH_TIMEOUT_SECONDS
-    github_token = os.getenv('GITHUB_TOKEN')
-    features = extract_features_from_student_repos(student_repo_urls, mahasiswa_dir)
-    queries = build_code_search_queries(features)
-    repo_hits = perform_code_search(queries, github_token, deadline)
-    enriched = enrich_repo_metadata(repo_hits, github_token, deadline)
-    selected = score_and_select(enriched, features, top_n=top_n)
-    os.makedirs(cache_dir, exist_ok=True)
-    cache_id = str(uuid.uuid4())
-    cache_path = os.path.join(cache_dir, f'auto_search_{cache_id}.json')
-    payload = {
-        'created_at': time.time(),
-        'student_repo_urls': student_repo_urls,
-        'features': features,
-        'queries': queries,
-        'candidates': selected
-    }
-    with open(cache_path, 'w', encoding='utf-8') as f:
-        json.dump(payload, f, ensure_ascii=False, indent=2)
-    return cache_id, selected
-
-def load_cache(cache_id, cache_dir):
-    path = os.path.join(cache_dir, f'auto_search_{cache_id}.json')
-    if os.path.exists(path):
-        with open(path, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    return None

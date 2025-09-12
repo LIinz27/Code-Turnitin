@@ -699,8 +699,8 @@ function exportResults() {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Page loaded, initializing...');
     
-    // Don't auto-discover on page load to avoid showing errors immediately
-    // User can click Auto Discover manually if needed
+    // Initialize classroom interface
+    // User can manually load classroom data if needed
     
     // Add keyboard shortcuts
     document.addEventListener('keydown', function(e) {

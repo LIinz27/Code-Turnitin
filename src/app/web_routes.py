@@ -15,12 +15,6 @@ def index():
     return render_template('index.html')
 
 
-@web_bp.route('/auto-search')
-def auto_search_page():
-    """Auto search page"""
-    return render_template('auto_search.html')
-
-
 @web_bp.route('/classroom')
 def classroom_page():
     """Classroom management page"""
@@ -29,8 +23,8 @@ def classroom_page():
 
 @web_bp.route('/test-repos')
 def test_repos_page():
-    """Test repositories page - redirect to auto search for now"""
-    return render_template('auto_search.html')
+    """Test repositories page"""
+    return render_template('test_repos.html')
 
 
 @web_bp.route('/static/<path:filename>')
