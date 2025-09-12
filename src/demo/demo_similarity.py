@@ -65,31 +65,44 @@ class DemoSimilarityAnalyzer:
         return algorithms
         
     def _load_downloaded_repos_info(self):
-        """Load information about downloaded repositories."""
-        if self.repo_downloader:
-            try:
-                download_info_path = os.path.join("data", "demo_repos", "download_log.json")
-                if os.path.exists(download_info_path):
-                    with open(download_info_path, 'r', encoding='utf-8') as f:
-                        download_log = json.load(f)
-                        # Convert download log to repository info format
-                        self.downloaded_repos_info = {}
-                        for repo_id, repo_data in download_log.items():
-                            repo_name = repo_data.get('repo_name', '')
-                            self.downloaded_repos_info[repo_name] = {
-                                'name': repo_name,
-                                'local_path': repo_data.get('local_path', ''),
-                                'language': repo_data.get('language', ''),
-                                'downloaded_at': repo_data.get('downloaded_at', ''),
-                                'size_kb': repo_data.get('size_kb', 0)
-                            }
-                    print(f"Loaded info for {len(self.downloaded_repos_info)} downloaded repositories")
-                else:
-                    print("No downloaded repository info found")
-                    self.downloaded_repos_info = {}
-            except Exception as e:
-                print(f"Error loading downloaded repos info: {e}")
-                self.downloaded_repos_info = {}
+        """Load information about downloaded repositories from multiple sources."""
+        try:
+            repo_info = {}
+            
+            # Load Java repositories info
+            java_log_path = os.path.join("data", "demo_repos", "download_log.json")
+            if os.path.exists(java_log_path):
+                with open(java_log_path, 'r', encoding='utf-8') as f:
+                    java_data = json.load(f)
+                    for repo in java_data.get("successful_downloads", []):
+                        repo_info[repo["name"]] = {
+                            "language": "Java",
+                            "path": os.path.join("data", "demo_repos", repo["name"]),
+                            "size": repo.get("size_bytes", 0),
+                            "files": repo.get("file_count", 0)
+                        }
+                logger.info(f"Loaded {len(java_data.get('successful_downloads', []))} Java repositories")
+            
+            # Load JavaScript repositories info
+            js_log_path = os.path.join("data", "demo_repos_js_filtered", "filtered_download_log.json")
+            if os.path.exists(js_log_path):
+                with open(js_log_path, 'r', encoding='utf-8') as f:
+                    js_data = json.load(f)
+                    for repo in js_data.get("successful_downloads", []):
+                        repo_info[repo["name"]] = {
+                            "language": "JavaScript",
+                            "path": os.path.join("data", "demo_repos_js_filtered", repo["name"]),
+                            "size": repo.get("original_size", 0),
+                            "files": 0  # Will be calculated if needed
+                        }
+                logger.info(f"Loaded {len(js_data.get('successful_downloads', []))} JavaScript repositories")
+            
+            self.downloaded_repos_info = repo_info
+            logger.info(f"Total downloaded repositories: {len(repo_info)}")
+            
+        except Exception as e:
+            logger.warning(f"Could not load downloaded repositories info: {e}")
+            self.downloaded_repos_info = {}
     
     def _get_real_code_from_downloaded_repo(self, repo_name: str) -> Optional[str]:
         """Get real code content from downloaded repository."""
@@ -97,21 +110,26 @@ class DemoSimilarityAnalyzer:
             return None
         
         try:
-            # Look for repository directory in data/demo_repos
-            base_demo_path = os.path.join("data", "demo_repos")
-            if not os.path.exists(base_demo_path):
-                print(f"DEBUG: Base demo path not found: {base_demo_path}")
-                return None
+            # Look for repository directory in multiple demo paths
+            demo_paths = [
+                os.path.join("data", "demo_repos"),  # Java repositories
+                os.path.join("data", "demo_repos_js_filtered"),  # JavaScript repositories
+            ]
             
-            # Try to find EXACT matching directory
             repo_dir = None
-            target_dir = os.path.join(base_demo_path, repo_name)
+            for base_demo_path in demo_paths:
+                if not os.path.exists(base_demo_path):
+                    print(f"DEBUG: Demo path not found: {base_demo_path}")
+                    continue
+                
+                target_dir = os.path.join(base_demo_path, repo_name)
+                if os.path.exists(target_dir) and os.path.isdir(target_dir):
+                    repo_dir = target_dir
+                    print(f"DEBUG: Found exact match directory: {repo_dir}")
+                    break
             
-            if os.path.exists(target_dir) and os.path.isdir(target_dir):
-                repo_dir = target_dir
-                print(f"DEBUG: Found exact match directory: {repo_dir}")
-            else:
-                print(f"DEBUG: Exact directory not found: {target_dir}")
+            if not repo_dir:
+                print(f"DEBUG: Repository directory not found in any demo path: {repo_name}")
                 return None
             
             # Read code files from the repository
@@ -120,11 +138,20 @@ class DemoSimilarityAnalyzer:
             
             print(f"DEBUG: Scanning directory: {repo_dir}")
             for root, dirs, files in os.walk(repo_dir):
-                # Skip git and other hidden directories
-                dirs[:] = [d for d in dirs if not d.startswith('.')]
+                # Skip git, node_modules, and other unnecessary directories
+                dirs[:] = [d for d in dirs if not d.startswith('.') and 
+                          d not in ['node_modules', 'vendor', 'target', 'build', 'dist', '__pycache__', 'venv', 'env', 'bin', 'lib', 'obj']]
                 
                 for file in files:
-                    if file.endswith(('.py', '.java', '.js', '.cpp', '.c', '.h', '.html', '.css')):
+                    # Support multiple programming languages, exclude unnecessary files
+                    if (file.endswith(('.py', '.java', '.js', '.jsx', '.ts', '.tsx', '.cpp', '.c', '.h', '.html', '.css', '.php', '.rb', '.go', '.rs', '.kt')) and
+                        not file.endswith(('.min.js', '.min.css')) and
+                        not file.startswith('.') and
+                        'node_modules' not in root and
+                        'vendor' not in root and
+                        'target' not in root and
+                        'build' not in root and
+                        'dist' not in root):
                         file_path = os.path.join(root, file)
                         print(f"DEBUG: Processing file: {file_path}")
                         try:
@@ -132,7 +159,17 @@ class DemoSimilarityAnalyzer:
                                 content = f.read().strip()
                                 if content and len(content) > 50:  # Only include substantial files
                                     relative_path = os.path.relpath(file_path, repo_dir)
-                                    code_content.append(f"// File: {relative_path}\n{content}\n")
+                                    
+                                    # Add language-specific comment format
+                                    if file.endswith(('.js', '.jsx', '.ts', '.tsx', '.java', '.cpp', '.c', '.h', '.php', '.kt', '.go', '.rs')):
+                                        code_content.append(f"// File: {relative_path}\n{content}\n")
+                                    elif file.endswith(('.py', '.rb')):
+                                        code_content.append(f"# File: {relative_path}\n{content}\n")
+                                    elif file.endswith(('.html', '.css')):
+                                        code_content.append(f"/* File: {relative_path} */\n{content}\n")
+                                    else:
+                                        code_content.append(f"// File: {relative_path}\n{content}\n")
+                                    
                                     file_count += 1
                                     print(f"DEBUG: Added file: {relative_path} ({len(content)} chars)")
                         except Exception as e:
@@ -689,6 +726,94 @@ module.exports = {{ processData, validateInput }};
                     'description': 'Demo implementation of edit distance'
                 }
             ]
+    
+    def compare_repositories(self, source_repo=None, target_repo=None, algorithm: str = 'jaccard', repo_id1: str = None, repo_id2: str = None) -> Dict[str, Any]:
+        """Compare two repositories using the specified algorithm.
+        
+        Args:
+            source_repo: Dictionary containing source repo metadata (with 'name' key)
+            target_repo: Dictionary containing target repo metadata (with 'name' key)
+            algorithm: Algorithm to use for comparison
+            repo_id1: Alternative way to specify first repository by ID
+            repo_id2: Alternative way to specify second repository by ID
+        """
+        import time
+        start_time = time.time()
+        
+        # Support both parameter styles
+        if source_repo and target_repo:
+            repo_name1 = source_repo.get('name', source_repo.get('id', str(source_repo)))
+            repo_name2 = target_repo.get('name', target_repo.get('id', str(target_repo)))
+        elif repo_id1 and repo_id2:
+            repo_name1 = repo_id1
+            repo_name2 = repo_id2
+        else:
+            return {
+                'similarity_score': 0.0,
+                'algorithm_used': algorithm,
+                'processing_time': time.time() - start_time,
+                'error': 'Invalid parameters - provide either (source_repo, target_repo) or (repo_id1, repo_id2)',
+                'details': {}
+            }
+        
+        # Get repository codes - create repo objects for _get_or_generate_code
+        repo1_obj = {'name': repo_name1, 'id': repo_name1, 'language': 'auto-detect'}
+        repo2_obj = {'name': repo_name2, 'id': repo_name2, 'language': 'auto-detect'}
+        
+        code1 = self._get_or_generate_code(repo1_obj)
+        code2 = self._get_or_generate_code(repo2_obj)
+        
+        if not code1 or not code2:
+            return {
+                'similarity_score': 0.0,
+                'algorithm_used': algorithm,
+                'processing_time': time.time() - start_time,
+                'error': 'Failed to retrieve code for one or both repositories',
+                'details': {
+                    'repo1_available': bool(code1),
+                    'repo2_available': bool(code2),
+                    'repo1_name': repo_name1,
+                    'repo2_name': repo_name2
+                }
+            }
+        
+        # Calculate similarity
+        if algorithm == 'jaccard' and SIMILARITY_ALGORITHMS_AVAILABLE:
+            similarity_score = self._calculate_jaccard_similarity(code1, code2)
+        elif algorithm in self.algorithms:
+            similarity_score = self.algorithms[algorithm].calculate_similarity(code1, code2)
+        else:
+            # Fallback to simple similarity
+            similarity_score = self._fallback_similarity_calculation(code1, code2)
+        
+        processing_time = time.time() - start_time
+        
+        # Record the analysis
+        analysis_record = {
+            'timestamp': datetime.now().isoformat(),
+            'repo1': repo_name1,
+            'repo2': repo_name2,
+            'algorithm': algorithm,
+            'similarity_score': similarity_score,
+            'processing_time': processing_time,
+            'code1_length': len(code1),
+            'code2_length': len(code2)
+        }
+        
+        self.analysis_history.append(analysis_record)
+        
+        return {
+            'similarity_score': similarity_score,
+            'algorithm_used': algorithm,
+            'processing_time': processing_time,
+            'details': {
+                'repo1': repo_name1,
+                'repo2': repo_name2,
+                'code1_length': len(code1),
+                'code2_length': len(code2),
+                'timestamp': analysis_record['timestamp']
+            }
+        }
     
     def get_analysis_history(self) -> List[Dict[str, Any]]:
         """Get history of analyses performed in this session."""
