@@ -8,6 +8,7 @@ data/classroom/
 # Ignore demo repositories (contains git submodules)
 data/demo_repos/
 data/demo_repos_js_filtered/
+data/demo_repos_python/
 
 # Ignore cache files
 data/cache/
