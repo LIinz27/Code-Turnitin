@@ -87,18 +87,28 @@ class DemoHandler:
             return {}
         return self.demo_data['repositories']
     
-    def get_repository_by_id(self, repo_id: int, language: str = None) -> Optional[Dict[str, Any]]:
-        """Get a specific repository by ID."""
+    def get_repository_by_id(self, repo_id, language: str = None) -> Optional[Dict[str, Any]]:
+        """Get a specific repository by ID (handles both string and int IDs)."""
         if not self.cached_repositories:
             return None
+        
+        # Try to convert repo_id to int if it's a string containing only digits
+        search_ids = [repo_id]
+        if isinstance(repo_id, str) and repo_id.isdigit():
+            search_ids.append(int(repo_id))
+        elif isinstance(repo_id, int):
+            search_ids.append(str(repo_id))
             
         if language and language in self.cached_repositories:
-            return self.cached_repositories[language].get(repo_id)
+            for search_id in search_ids:
+                if search_id in self.cached_repositories[language]:
+                    return self.cached_repositories[language][search_id]
         
         # Search across all languages if language not specified
         for lang_repos in self.cached_repositories.values():
-            if repo_id in lang_repos:
-                return lang_repos[repo_id]
+            for search_id in search_ids:
+                if search_id in lang_repos:
+                    return lang_repos[search_id]
         
         return None
     

@@ -173,6 +173,8 @@ def demo_api_candidates():
     repo_id = request.args.get('repo_id')
     limit = request.args.get('limit', 50, type=int)  # Increase default limit to 50
     
+    print(f"DEBUG: Candidates request - repo_id: {repo_id} (type: {type(repo_id)})")
+    
     if not repo_id:
         return jsonify({'error': 'Repository ID is required'}), 400
     
@@ -180,17 +182,25 @@ def demo_api_candidates():
     handler = get_demo_handler()
     source_repo = None
     
+    print(f"DEBUG: Available languages: {handler.get_available_languages()}")
+    
     for lang in handler.get_available_languages():
         repo = handler.get_repository_by_id(repo_id, lang)
+        print(f"DEBUG: Searching in {lang} for repo_id {repo_id}: {'Found' if repo else 'Not found'}")
         if repo:
             source_repo = repo
             break
     
     if not source_repo:
+        print(f"DEBUG: Repository {repo_id} not found in any language")
         return jsonify({'error': 'Repository not found'}), 404
+    
+    print(f"DEBUG: Found source repo: {source_repo.get('name')} ({source_repo.get('language')})")
     
     # Get comparison candidates
     candidates = handler.get_comparison_candidates(source_repo, limit)
+    
+    print(f"DEBUG: Generated {len(candidates)} candidates")
     
     return jsonify({
         'source_repository': handler.get_repository_summary(source_repo),
