@@ -97,6 +97,40 @@ class DemoSimilarityAnalyzer:
                         }
                 logger.info(f"Loaded {len(js_data.get('successful_downloads', []))} JavaScript repositories")
             
+            # Load Python repositories info
+            python_log_path = os.path.join("data", "demo_repos_python_filtered", "filtered_download_log.json")
+            if os.path.exists(python_log_path):
+                with open(python_log_path, 'r', encoding='utf-8') as f:
+                    python_data = json.load(f)
+                    # Handle both elasticsearch-4a and elasticsearch-4b categories
+                    for category in ["elasticsearch-4a", "elasticsearch-4b"]:
+                        if category in python_data.get("repositories", {}):
+                            for repo in python_data["repositories"][category]:
+                                repo_info[repo["name"]] = {
+                                    "language": "Python",
+                                    "path": os.path.join("data", "demo_repos_python", repo["name"]),
+                                    "size": repo.get("size", 0),
+                                    "files": repo.get("estimated_files", 0)
+                                }
+                python_repo_count = len([r for r in repo_info.values() if r["language"] == "Python"])
+                logger.info(f"Loaded {python_repo_count} Python repositories")
+            else:
+                # Fallback: scan Python directory directly
+                python_dir = os.path.join("data", "demo_repos_python")
+                if os.path.exists(python_dir):
+                    python_count = 0
+                    for repo_name in os.listdir(python_dir):
+                        repo_path = os.path.join(python_dir, repo_name)
+                        if os.path.isdir(repo_path):
+                            repo_info[repo_name] = {
+                                "language": "Python",
+                                "path": repo_path,
+                                "size": 0,  # Will be calculated if needed
+                                "files": 0
+                            }
+                            python_count += 1
+                    logger.info(f"Loaded {python_count} Python repositories from directory scan")
+            
             self.downloaded_repos_info = repo_info
             logger.info(f"Total downloaded repositories: {len(repo_info)}")
             
@@ -114,6 +148,7 @@ class DemoSimilarityAnalyzer:
             demo_paths = [
                 os.path.join("data", "demo_repos"),  # Java repositories
                 os.path.join("data", "demo_repos_js_filtered"),  # JavaScript repositories
+                os.path.join("data", "demo_repos_python"),  # Python repositories
             ]
             
             repo_dir = None
