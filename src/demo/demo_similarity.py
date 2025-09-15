@@ -706,6 +706,183 @@ module.exports = {{ processData, validateInput }};
         
         return results
     
+    def get_detailed_comparison(self, source_repo: Dict[str, Any], 
+                              target_repo: Dict[str, Any], 
+                              algorithm: str = 'jaccard') -> Dict[str, Any]:
+        """Get detailed comparison between two repositories including code diff and similarity breakdown."""
+        try:
+            # Get source and target code
+            source_code = self._get_or_generate_code(source_repo)
+            target_code = self._get_or_generate_code(target_repo)
+            
+            # Calculate similarity score
+            if SIMILARITY_ALGORITHMS_AVAILABLE and algorithm in self.algorithms:
+                similarity_score = self.algorithms[algorithm]['function'](source_code, target_code)
+            else:
+                similarity_score = self.algorithms[algorithm].calculate_similarity(source_code, target_code)
+            
+            # Generate detailed analysis
+            detailed_result = {
+                'source_repository': {
+                    'id': source_repo.get('id'),
+                    'name': source_repo.get('name'),
+                    'language': source_repo.get('language'),
+                    'size': source_repo.get('size'),
+                    'code_length': len(source_code)
+                },
+                'target_repository': {
+                    'id': target_repo.get('id'),
+                    'name': target_repo.get('name'),
+                    'language': target_repo.get('language'),
+                    'size': target_repo.get('size'),
+                    'code_length': len(target_code)
+                },
+                'similarity': {
+                    'score': round(similarity_score, 4),
+                    'percentage': round(similarity_score * 100, 2),
+                    'level': 'high' if similarity_score >= 0.7 else ('medium' if similarity_score >= 0.4 else 'low'),
+                    'algorithm': algorithm,
+                    'algorithm_name': algorithm.title()
+                },
+                'code_comparison': {
+                    'source_code': self._format_code_for_display(source_code),
+                    'target_code': self._format_code_for_display(target_code),
+                    'similar_blocks': self._identify_similar_blocks(source_code, target_code),
+                    'diff_lines': self._generate_diff_lines(source_code, target_code)
+                },
+                'winnowing_details': self._get_winnowing_details(source_code, target_code) if SIMILARITY_ALGORITHMS_AVAILABLE else None,
+                'analysis_timestamp': datetime.now().isoformat(),
+                'comparison_stats': {
+                    'source_lines': source_code.count('\n') + 1,
+                    'target_lines': target_code.count('\n') + 1,
+                    'similar_line_count': self._count_similar_lines(source_code, target_code),
+                    'unique_source_lines': 0,  # Will be calculated
+                    'unique_target_lines': 0   # Will be calculated
+                }
+            }
+            
+            return detailed_result
+            
+        except Exception as e:
+            logger.error(f"Error in detailed comparison: {e}")
+            return {
+                'error': f'Detailed comparison failed: {str(e)}',
+                'source_repository': {'name': source_repo.get('name', 'Unknown')},
+                'target_repository': {'name': target_repo.get('name', 'Unknown')}
+            }
+    
+    def _format_code_for_display(self, code: str, max_lines: int = 100) -> Dict[str, Any]:
+        """Format code for display in the frontend with line numbers."""
+        lines = code.split('\n')
+        
+        # Limit lines for performance
+        if len(lines) > max_lines:
+            displayed_lines = lines[:max_lines]
+            truncated = True
+        else:
+            displayed_lines = lines
+            truncated = False
+        
+        return {
+            'lines': [{'number': i + 1, 'content': line} for i, line in enumerate(displayed_lines)],
+            'total_lines': len(lines),
+            'displayed_lines': len(displayed_lines),
+            'truncated': truncated
+        }
+    
+    def _identify_similar_blocks(self, source_code: str, target_code: str) -> List[Dict[str, Any]]:
+        """Identify similar code blocks between source and target."""
+        # Simplified similar block identification
+        source_lines = source_code.split('\n')
+        target_lines = target_code.split('\n')
+        
+        similar_blocks = []
+        
+        # Find consecutive similar lines (simplified approach)
+        for i, source_line in enumerate(source_lines[:50]):  # Limit for demo
+            source_line_clean = source_line.strip()
+            if len(source_line_clean) < 10:  # Skip very short lines
+                continue
+                
+            for j, target_line in enumerate(target_lines[:50]):  # Limit for demo
+                target_line_clean = target_line.strip()
+                if len(target_line_clean) < 10:
+                    continue
+                
+                # Simple similarity check (can be enhanced with more sophisticated algorithms)
+                if source_line_clean == target_line_clean:
+                    similar_blocks.append({
+                        'source_line': i + 1,
+                        'target_line': j + 1,
+                        'content': source_line_clean[:100],  # Truncate for display
+                        'similarity': 1.0,
+                        'type': 'exact_match'
+                    })
+                elif len(source_line_clean) > 20 and source_line_clean in target_line_clean:
+                    similar_blocks.append({
+                        'source_line': i + 1,
+                        'target_line': j + 1,
+                        'content': source_line_clean[:100],
+                        'similarity': 0.8,
+                        'type': 'partial_match'
+                    })
+        
+        return similar_blocks[:20]  # Limit to first 20 matches for performance
+    
+    def _generate_diff_lines(self, source_code: str, target_code: str) -> List[Dict[str, Any]]:
+        """Generate line-by-line diff information."""
+        source_lines = source_code.split('\n')
+        target_lines = target_code.split('\n')
+        
+        diff_lines = []
+        max_lines = min(len(source_lines), len(target_lines), 50)  # Limit for demo
+        
+        for i in range(max_lines):
+            source_line = source_lines[i] if i < len(source_lines) else ""
+            target_line = target_lines[i] if i < len(target_lines) else ""
+            
+            if source_line.strip() == target_line.strip():
+                diff_type = "identical"
+            elif source_line.strip() in target_line.strip() or target_line.strip() in source_line.strip():
+                diff_type = "similar"
+            else:
+                diff_type = "different"
+            
+            diff_lines.append({
+                'line_number': i + 1,
+                'source_content': source_line[:100],  # Truncate for display
+                'target_content': target_line[:100],
+                'diff_type': diff_type
+            })
+        
+        return diff_lines
+    
+    def _get_winnowing_details(self, source_code: str, target_code: str) -> Dict[str, Any]:
+        """Get winnowing algorithm details if available."""
+        try:
+            if not SIMILARITY_ALGORITHMS_AVAILABLE:
+                return None
+            
+            # This would use the actual winnowing algorithm from similarity_checker
+            # For now, return mock winnowing details
+            return {
+                'k_value': 5,  # Minimum match length
+                'w_value': 4,  # Window size
+                'source_fingerprints': 45,  # Mock values
+                'target_fingerprints': 52,
+                'matching_fingerprints': 18,
+                'fingerprint_similarity': 0.78
+            }
+        except Exception as e:
+            logger.warning(f"Could not get winnowing details: {e}")
+            return None
+    
+    def _count_similar_lines(self, source_code: str, target_code: str) -> int:
+        """Count the number of similar lines between source and target."""
+        source_lines = set(line.strip() for line in source_code.split('\n') if line.strip())
+        target_lines = set(line.strip() for line in target_code.split('\n') if line.strip())
+        return len(source_lines.intersection(target_lines))
+    
     def _get_or_generate_code(self, repo: Dict[str, Any]) -> str:
         """Get real code from downloaded repos or generate mock code for repository."""
         repo_id = repo.get('id')

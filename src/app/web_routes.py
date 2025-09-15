@@ -150,6 +150,42 @@ def demo_api_analyze():
         return jsonify({'error': f'Analysis failed: {str(e)}'}), 500
 
 
+@web_bp.route('/demo/api/comparison-detail/<source_id>/<target_id>')
+def demo_api_comparison_detail(source_id, target_id):
+    """API endpoint to get detailed comparison between two repositories"""
+    try:
+        # Get repositories
+        handler = get_demo_handler()
+        source_repo = None
+        target_repo = None
+        
+        # Find source repository
+        for lang in handler.get_available_languages():
+            repo = handler.get_repository_by_id(source_id, lang)
+            if repo:
+                source_repo = repo
+                break
+        
+        # Find target repository
+        for lang in handler.get_available_languages():
+            repo = handler.get_repository_by_id(target_id, lang)
+            if repo:
+                target_repo = repo
+                break
+        
+        if not source_repo or not target_repo:
+            return jsonify({'error': 'One or both repositories not found'}), 404
+        
+        # Get detailed comparison
+        analyzer = get_demo_analyzer()
+        detailed_comparison = analyzer.get_detailed_comparison(source_repo, target_repo)
+        
+        return jsonify(detailed_comparison)
+        
+    except Exception as e:
+        return jsonify({'error': f'Detailed comparison failed: {str(e)}'}), 500
+
+
 @web_bp.route('/demo/api/statistics')
 def demo_api_statistics():
     """API endpoint to get demo session statistics"""
