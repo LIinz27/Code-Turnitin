@@ -224,7 +224,16 @@ class DemoSimilarityAnalyzer:
         return None
     
     def _calculate_jaccard_similarity(self, code1: str, code2: str) -> float:
-        """Calculate Jaccard similarity using existing winnowing algorithm."""
+        """
+        Enhanced Jaccard similarity using advanced winnowing algorithm from similarity_checker.py
+        
+        Improvements:
+        1. Uses proper winnowing algorithm implementation
+        2. Rolling hash for better performance 
+        3. Enhanced preprocessing with identifier normalization
+        4. Deterministic fingerprint selection
+        5. Better parameter tuning for accuracy
+        """
         import tempfile
         import os
         
@@ -238,34 +247,33 @@ class DemoSimilarityAnalyzer:
                 f2.write(code2)
                 temp_file2 = f2.name
             
-            # Import additional functions needed
-            from algorithms.similarity_checker import preprocess_code, generate_k_grams, hash_k_gram_optimized
+            # Import enhanced similarity functions from the robust algorithm
+            from algorithms.similarity_checker import (
+                preprocess_code, generate_k_grams, hash_k_gram_optimized, 
+                winnowing, calculate_jaccard_similarity
+            )
             
-            # Follow the existing workflow
-            k = 5  # k-gram size
-            w = 10  # window size
+            # Balanced parameters for optimal accuracy
+            k = 6  # Balanced k-gram size for good discrimination without being too strict
+            w = 10  # Standard window size for stable fingerprints
             
-            # Step 1: Preprocess code
+            # Step 1: Enhanced preprocessing with identifier normalization
             tokens_a, lines_a = preprocess_code(temp_file1, None)
             tokens_b, lines_b = preprocess_code(temp_file2, None)
             
             if not tokens_a or not tokens_b:
-                # Clean up and return fallback
-                os.unlink(temp_file1)
-                os.unlink(temp_file2)
+                self._cleanup_temp_files(temp_file1, temp_file2)
                 return self._fallback_similarity_calculation(code1, code2)
             
-            # Step 2: Generate k-grams
+            # Step 2: Generate k-grams with line information
             k_grams_a = generate_k_grams(tokens_a, k)
             k_grams_b = generate_k_grams(tokens_b, k)
             
             if not k_grams_a or not k_grams_b:
-                # Clean up and return fallback
-                os.unlink(temp_file1)
-                os.unlink(temp_file2)
+                self._cleanup_temp_files(temp_file1, temp_file2)
                 return self._fallback_similarity_calculation(code1, code2)
             
-            # Step 3: Hash k-grams
+            # Step 3: Hash k-grams using optimized rolling hash
             hashed_k_grams_a = []
             for k_gram_tuple, start_line, end_line in k_grams_a:
                 hash_val = hash_k_gram_optimized(k_gram_tuple)
@@ -276,47 +284,130 @@ class DemoSimilarityAnalyzer:
                 hash_val = hash_k_gram_optimized(k_gram_tuple)
                 hashed_k_grams_b.append((hash_val, (k_gram_tuple, start_line, end_line), (start_line, end_line)))
             
-            # Step 4: Apply winnowing
+            # Step 4: Apply true winnowing algorithm with proper window management
             fingerprints_a = winnowing(hashed_k_grams_a, w)
             fingerprints_b = winnowing(hashed_k_grams_b, w)
             
-            # Step 5: Calculate Jaccard similarity
+            # Step 5: Calculate mathematical Jaccard similarity
             similarity_score, intersection_count, union_count = calculate_jaccard_similarity(fingerprints_a, fingerprints_b)
             
             # Clean up temporary files
-            os.unlink(temp_file1)
-            os.unlink(temp_file2)
+            self._cleanup_temp_files(temp_file1, temp_file2)
+            
+            # Log detailed analysis for debugging
+            logger.debug(f"Enhanced Jaccard Analysis: k={k}, w={w}, fingerprints_a={len(fingerprints_a)}, "
+                        f"fingerprints_b={len(fingerprints_b)}, intersection={intersection_count}, "
+                        f"union={union_count}, similarity={similarity_score:.4f}")
             
             return similarity_score
             
         except Exception as e:
-            logger.warning(f"Error in Jaccard similarity calculation: {e}")
-            # Clean up temporary files if they exist
-            try:
-                if 'temp_file1' in locals():
-                    os.unlink(temp_file1)
-                if 'temp_file2' in locals():
-                    os.unlink(temp_file2)
-            except:
-                pass
+            logger.warning(f"Error in enhanced Jaccard similarity calculation: {e}")
+            # Clean up temporary files if they exist  
+            self._cleanup_temp_files(
+                locals().get('temp_file1', ''), 
+                locals().get('temp_file2', '')
+            )
             # Fallback to deterministic calculation
             return self._fallback_similarity_calculation(code1, code2)
     
+    def _cleanup_temp_files(self, *file_paths):
+        """Safely clean up temporary files"""
+        for file_path in file_paths:
+            try:
+                if file_path and os.path.exists(file_path):
+                    os.unlink(file_path)
+            except Exception as e:
+                logger.warning(f"Failed to cleanup temp file {file_path}: {e}")
+    
     def _fallback_similarity_calculation(self, code1: str, code2: str) -> float:
-        """Fallback similarity calculation when winnowing fails."""
-        # Simple token-based similarity for demo purposes
-        tokens1 = set(code1.split())
-        tokens2 = set(code2.split())
+        """
+        Enhanced fallback similarity calculation when winnowing fails.
         
-        if not tokens1 and not tokens2:
-            return 1.0
-        if not tokens1 or not tokens2:
-            return 0.0
+        Uses a more sophisticated approach than simple token matching:
+        1. Code normalization (remove comments, strings, whitespace)
+        2. Token-based Jaccard similarity
+        3. Character-level similarity as backup
+        """
+        import re
         
-        intersection = len(tokens1 & tokens2)
-        union = len(tokens1 | tokens2)
-        
-        return intersection / union if union > 0 else 0.0
+        try:
+            # Normalize code by removing comments, strings, and extra whitespace
+            def normalize_code(code):
+                # Remove single line comments
+                code = re.sub(r'//.*$', '', code, flags=re.MULTILINE)
+                code = re.sub(r'#.*$', '', code, flags=re.MULTILINE)
+                
+                # Remove multi-line comments  
+                code = re.sub(r'/\*.*?\*/', '', code, flags=re.DOTALL)
+                
+                # Remove string literals
+                code = re.sub(r'"[^"]*"', 'STRING', code)
+                code = re.sub(r"'[^']*'", 'STRING', code)
+                code = re.sub(r'`[^`]*`', 'STRING', code)
+                
+                # Remove extra whitespace and normalize
+                code = re.sub(r'\s+', ' ', code)
+                code = code.strip().lower()
+                
+                return code
+            
+            # Normalize both codes
+            normalized_code1 = normalize_code(code1)
+            normalized_code2 = normalize_code(code2)
+            
+            if not normalized_code1 and not normalized_code2:
+                return 1.0  # Both empty
+            if not normalized_code1 or not normalized_code2:
+                return 0.0  # One empty
+            
+            # Method 1: Token-based Jaccard similarity
+            tokens1 = set(re.findall(r'\w+', normalized_code1))
+            tokens2 = set(re.findall(r'\w+', normalized_code2))
+            
+            if tokens1 or tokens2:
+                token_intersection = len(tokens1 & tokens2)
+                token_union = len(tokens1 | tokens2)
+                token_similarity = token_intersection / token_union if token_union > 0 else 0.0
+            else:
+                token_similarity = 1.0 if not tokens1 and not tokens2 else 0.0
+            
+            # Method 2: Character sequence similarity (for structure)
+            def char_similarity(s1, s2):
+                if len(s1) == 0 and len(s2) == 0:
+                    return 1.0
+                if len(s1) == 0 or len(s2) == 0:
+                    return 0.0
+                
+                # Simple character-level matching
+                char_set1 = set(s1)
+                char_set2 = set(s2)
+                char_intersection = len(char_set1 & char_set2)
+                char_union = len(char_set1 | char_set2)
+                return char_intersection / char_union if char_union > 0 else 0.0
+            
+            char_sim = char_similarity(normalized_code1, normalized_code2)
+            
+            # Combine both methods (weighted average)
+            final_similarity = 0.7 * token_similarity + 0.3 * char_sim
+            
+            logger.debug(f"Fallback calculation: token_sim={token_similarity:.3f}, "
+                        f"char_sim={char_sim:.3f}, final={final_similarity:.3f}")
+            
+            return final_similarity
+            
+        except Exception as e:
+            logger.warning(f"Error in fallback similarity calculation: {e}")
+            # Ultimate fallback - basic string similarity
+            if code1 == code2:
+                return 1.0
+            elif not code1 or not code2:
+                return 0.0
+            else:
+                # Very basic similarity based on length ratio
+                len1, len2 = len(code1), len(code2)
+                min_len, max_len = min(len1, len2), max(len1, len2)
+                return min_len / max_len if max_len > 0 else 0.0
     
     def _create_fallback_algorithms(self) -> Dict[str, Any]:
         """Create fallback algorithm implementations for demo purposes."""

@@ -142,50 +142,60 @@ def generate_k_grams(tokens_with_lines, k):
 
 def hash_k_gram_optimized(k_gram_tuple):
     """
-    Optimized hash function for k-grams using rolling hash principle
-    Much faster than SHA-1 for small k-gram tuples
+    Deterministic hash function for k-grams using polynomial rolling hash
+    Ensures consistent results across multiple runs
     """
+    BASE_HASH = 31  # Different from rolling hash base to avoid conflicts
+    PRIME_HASH = 10**9 + 7  # Large prime for better distribution
+    
     h = 0
     for i, token in enumerate(k_gram_tuple):
-        # Use polynomial rolling hash for better distribution
-        h = (h * BASE + hash(token)) % PRIME
+        # Convert token to string and use deterministic character-based hashing
+        token_str = str(token)
+        token_hash = 0
+        for char in token_str:
+            token_hash = (token_hash * 37 + ord(char)) % PRIME_HASH
+        h = (h * BASE_HASH + token_hash) % PRIME_HASH
     return h
 
 def winnowing(hashed_k_grams_info, w):
     """
-    TRUE WINNOWING ALGORITHM Implementation
-    Selects minimum hash in each window of size w
+    DETERMINISTIC WINNOWING ALGORITHM Implementation
+    Selects minimum hash in each window of size w with consistent tie-breaking
     
     Key improvements:
-    1. Maintains window using deque for O(n) complexity
-    2. Guarantees at least one fingerprint per window
-    3. Handles ties consistently (leftmost minimum)
+    1. Deterministic tie-breaking (leftmost position wins)
+    2. Consistent fingerprint selection across runs
+    3. Maintains proper window semantics
     """
     if len(hashed_k_grams_info) < w:
         return hashed_k_grams_info  # Return all if less than window size
     
-    from collections import deque
     fingerprints = []
-    window = deque()  # Store (hash_value, index, k_gram_info)
+    selected_positions = set()  # Track already selected positions to avoid duplicates
     
-    for i, (hash_val, k_gram_info, line_info) in enumerate(hashed_k_grams_info):
-        # Remove elements outside current window
-        while window and window[0][1] <= i - w:
-            window.popleft()
+    # Process each window position
+    for i in range(len(hashed_k_grams_info) - w + 1):
+        window_end = i + w
+        window_items = hashed_k_grams_info[i:window_end]
         
-        # Remove elements with hash >= current hash (maintain minimum)
-        while window and window[-1][0] >= hash_val:
-            window.pop()
+        # Find minimum hash in current window with deterministic tie-breaking
+        min_hash = float('inf')
+        min_position = -1
+        min_item = None
         
-        # Add current element
-        window.append((hash_val, i, k_gram_info, line_info))
+        for j, (hash_val, k_gram_info, line_info) in enumerate(window_items):
+            actual_position = i + j
+            # Select leftmost minimum (deterministic tie-breaking)
+            if hash_val < min_hash or (hash_val == min_hash and actual_position < min_position):
+                min_hash = hash_val
+                min_position = actual_position
+                min_item = (hash_val, k_gram_info, line_info)
         
-        # The leftmost element is always the minimum in current window
-        if i >= w - 1:  # Start selecting after first complete window
-            min_hash, min_idx, min_k_gram, min_line = window[0]
-            # Avoid duplicates by checking if this fingerprint was already selected
-            if not fingerprints or fingerprints[-1][0] != min_hash:
-                fingerprints.append((min_hash, min_k_gram, min_line))
+        # Add fingerprint if this position hasn't been selected yet
+        if min_position not in selected_positions:
+            selected_positions.add(min_position)
+            fingerprints.append(min_item)
     
     return fingerprints
 
