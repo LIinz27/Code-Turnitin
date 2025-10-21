@@ -223,16 +223,87 @@ class DemoSimilarityAnalyzer:
         
         return None
     
-    def _calculate_jaccard_similarity(self, code1: str, code2: str) -> float:
+    def _calculate_jaccard_similarity(self, source_repo: Dict[str, Any], target_repo: Dict[str, Any]) -> float:
         """
-        Enhanced Jaccard similarity using advanced winnowing algorithm from similarity_checker.py
+        FILE-BY-FILE Jaccard similarity using file-level comparison for enhanced accuracy.
         
-        Improvements:
-        1. Uses proper winnowing algorithm implementation
-        2. Rolling hash for better performance 
-        3. Enhanced preprocessing with identifier normalization
-        4. Deterministic fingerprint selection
-        5. Better parameter tuning for accuracy
+        This replaces the concatenated approach with individual file analysis:
+        1. Discovers all code files in both repositories
+        2. Compares each source file with all compatible target files
+        3. Calculates weighted similarity based on file importance
+        4. Returns more accurate similarity reflecting actual code reuse
+        """
+        try:
+            # Import the new file comparison engine
+            from algorithms.file_comparison import FileComparisonEngine
+            
+            # Get repository paths
+            source_path = self._get_repository_path(source_repo)
+            target_path = self._get_repository_path(target_repo)
+            
+            if not source_path or not target_path:
+                logger.warning(f"Could not find repository paths for {source_repo.get('name')} or {target_repo.get('name')}")
+                return self._fallback_similarity_calculation("", "")
+            
+            # Initialize file comparison engine with optimized parameters
+            engine = FileComparisonEngine(k=6, w=10, similarity_threshold=0.1)
+            
+            # Perform file-by-file analysis
+            result = engine.analyze_repositories(
+                source_path, target_path,
+                str(source_repo.get('id')), str(target_repo.get('id'))
+            )
+            
+            # Use weighted similarity for better accuracy
+            # Falls back to overall similarity if weighted calculation fails
+            final_similarity = result.weighted_similarity if result.weighted_similarity > 0 else result.overall_similarity
+            
+            logger.info(f"File-by-file analysis complete: {source_repo.get('name')} vs {target_repo.get('name')} = {final_similarity:.3f}")
+            logger.info(f"Analysis details: {result.analysis_summary.get('total_comparisons', 0)} file comparisons, "
+                       f"{result.analysis_summary.get('exact_copies', 0)} exact copies, "
+                       f"{result.analysis_summary.get('modified_copies', 0)} modified copies")
+            
+            return final_similarity
+            
+        except ImportError as e:
+            logger.error(f"Could not import file comparison engine: {e}")
+            return self._fallback_similarity_calculation("", "")
+        except Exception as e:
+            logger.error(f"File-by-file similarity calculation failed: {e}")
+            # Fallback to basic similarity if needed
+            return self._fallback_similarity_calculation("", "")
+    
+    def _get_repository_path(self, repo: Dict[str, Any]) -> Optional[str]:
+        """Get the file system path for a repository."""
+        repo_name = repo.get('name', '')
+        language = repo.get('language', '').lower()
+        
+        # Define base paths for different languages
+        base_paths = {
+            'java': 'data/demo_repos',
+            'javascript': 'data/demo_repos_js_filtered', 
+            'python': 'data/demo_repos_python'
+        }
+        
+        base_path = base_paths.get(language)
+        if not base_path:
+            logger.warning(f"Unknown language for repository path: {language}")
+            return None
+        
+        repo_path = os.path.join(base_path, repo_name)
+        
+        if os.path.exists(repo_path):
+            return repo_path
+        
+        logger.warning(f"Repository path not found: {repo_path}")
+        return None
+    
+    def _legacy_calculate_jaccard_similarity_concatenated(self, code1: str, code2: str) -> float:
+        """
+        Legacy concatenated similarity calculation (kept for fallback).
+        
+        This is the old method that concatenates all files into one string.
+        Used only as fallback when file-by-file analysis fails.
         """
         import tempfile
         import os
@@ -706,8 +777,10 @@ module.exports = {{ processData, validateInput }};
         if algorithm not in self.algorithms:
             algorithm = 'jaccard'  # Fallback to default
         
-        # Generate or get cached code for source repository
-        source_code = self._get_or_generate_code(source_repo)
+        # Generate source code only if needed for fallback
+        source_code = None
+        if not SIMILARITY_ALGORITHMS_AVAILABLE:
+            source_code = self._get_or_generate_code(source_repo)
         
         results = {
             'source_repository': {
@@ -734,14 +807,15 @@ module.exports = {{ processData, validateInput }};
         similarities = []
         
         for target_repo in target_repos:
-            # Generate or get cached code for target repository
-            target_code = self._get_or_generate_code(target_repo)
-            
-            # Calculate similarity using selected algorithm
+            # Calculate similarity using FILE-BY-FILE analysis
             if SIMILARITY_ALGORITHMS_AVAILABLE and algorithm in self.algorithms:
-                similarity_score = self.algorithms[algorithm]['function'](source_code, target_code)
+                # Use the new file-by-file comparison method
+                similarity_score = self.algorithms[algorithm]['function'](source_repo, target_repo)
             else:
-                # Use fallback algorithm
+                # Fallback: generate code and use legacy comparison
+                if source_code is None:
+                    source_code = self._get_or_generate_code(source_repo)
+                target_code = self._get_or_generate_code(target_repo)
                 similarity_score = self.algorithms[algorithm].calculate_similarity(source_code, target_code)
             similarities.append(similarity_score)
             
@@ -767,9 +841,10 @@ module.exports = {{ processData, validateInput }};
                 'similarity_percentage': round(similarity_score * 100, 2),
                 'similarity_level': level,
                 'analysis_details': {
-                    'source_code_length': len(source_code),
-                    'target_code_length': len(target_code),
-                    'algorithm_used': algorithm
+                    'source_repository_size': source_repo.get('size', 0),
+                    'target_repository_size': target_repo.get('size', 0),
+                    'algorithm_used': f"{algorithm} (File-by-File)",
+                    'analysis_type': 'file_by_file'
                 }
             }
             
@@ -800,57 +875,114 @@ module.exports = {{ processData, validateInput }};
     def get_detailed_comparison(self, source_repo: Dict[str, Any], 
                               target_repo: Dict[str, Any], 
                               algorithm: str = 'jaccard') -> Dict[str, Any]:
-        """Get detailed comparison between two repositories including code diff and similarity breakdown."""
+        """Get detailed FILE-BY-FILE comparison between two repositories with individual file analysis."""
         try:
-            # Get source and target code
-            source_code = self._get_or_generate_code(source_repo)
-            target_code = self._get_or_generate_code(target_repo)
-            
-            # Calculate similarity score
+            # Perform file-by-file analysis
             if SIMILARITY_ALGORITHMS_AVAILABLE and algorithm in self.algorithms:
-                similarity_score = self.algorithms[algorithm]['function'](source_code, target_code)
+                # Use file-by-file analysis for similarity score
+                similarity_score = self.algorithms[algorithm]['function'](source_repo, target_repo)
+                
+                # Get detailed file-by-file results
+                file_analysis_result = self._get_file_by_file_details(source_repo, target_repo)
             else:
+                # Fallback to legacy concatenated method
+                source_code = self._get_or_generate_code(source_repo)
+                target_code = self._get_or_generate_code(target_repo)
                 similarity_score = self.algorithms[algorithm].calculate_similarity(source_code, target_code)
+                file_analysis_result = None
             
-            # Generate detailed analysis
-            detailed_result = {
-                'source_repository': {
-                    'id': source_repo.get('id'),
-                    'name': source_repo.get('name'),
-                    'language': source_repo.get('language'),
-                    'size': source_repo.get('size'),
-                    'code_length': len(source_code)
-                },
-                'target_repository': {
-                    'id': target_repo.get('id'),
-                    'name': target_repo.get('name'),
-                    'language': target_repo.get('language'),
-                    'size': target_repo.get('size'),
-                    'code_length': len(target_code)
-                },
-                'similarity': {
-                    'score': round(similarity_score, 4),
-                    'percentage': round(similarity_score * 100, 2),
-                    'level': 'high' if similarity_score >= 0.7 else ('medium' if similarity_score >= 0.4 else 'low'),
-                    'algorithm': algorithm,
-                    'algorithm_name': algorithm.title()
-                },
-                'code_comparison': {
-                    'source_code': self._format_code_for_display(source_code),
-                    'target_code': self._format_code_for_display(target_code),
-                    'similar_blocks': self._identify_similar_blocks(source_code, target_code),
-                    'diff_lines': self._generate_diff_lines(source_code, target_code)
-                },
-                'winnowing_details': self._get_winnowing_details(source_code, target_code) if SIMILARITY_ALGORITHMS_AVAILABLE else None,
-                'analysis_timestamp': datetime.now().isoformat(),
-                'comparison_stats': {
-                    'source_lines': source_code.count('\n') + 1,
-                    'target_lines': target_code.count('\n') + 1,
-                    'similar_line_count': self._count_similar_lines(source_code, target_code),
-                    'unique_source_lines': 0,  # Will be calculated
-                    'unique_target_lines': 0   # Will be calculated
+            # Generate detailed analysis using FILE-BY-FILE results
+            if file_analysis_result:
+                # Use file-by-file analysis results
+                detailed_result = {
+                    'source_repository': {
+                        'id': source_repo.get('id'),
+                        'name': source_repo.get('name'),
+                        'language': source_repo.get('language'),
+                        'size': source_repo.get('size'),
+                        'file_count': len(file_analysis_result.get('source_files', []))
+                    },
+                    'target_repository': {
+                        'id': target_repo.get('id'),
+                        'name': target_repo.get('name'),
+                        'language': target_repo.get('language'),
+                        'size': target_repo.get('size'),
+                        'file_count': len(file_analysis_result.get('target_files', []))
+                    },
+                    'similarity': {
+                        'score': round(similarity_score, 4),
+                        'percentage': round(similarity_score * 100, 2),
+                        'level': 'high' if similarity_score >= 0.7 else ('medium' if similarity_score >= 0.4 else 'low'),
+                        'algorithm': algorithm,
+                        'algorithm_name': f"{algorithm.title()} (File-by-File)",
+                        'weighted_similarity': file_analysis_result.get('weighted_similarity', similarity_score)
+                    },
+                    'file_analysis': {
+                        'total_file_comparisons': file_analysis_result.get('total_comparisons', 0),
+                        'exact_copies': file_analysis_result.get('exact_copies', 0),
+                        'modified_copies': file_analysis_result.get('modified_copies', 0),
+                        'file_similarities': file_analysis_result.get('file_similarities', []),
+                        'top_similar_files': file_analysis_result.get('top_similar_files', [])
+                    },
+                    'code_comparison': {
+                        'source_code': self._format_file_by_file_code(file_analysis_result.get('source_files', [])),
+                        'target_code': self._format_file_by_file_code(file_analysis_result.get('target_files', [])),
+                        'similar_blocks': file_analysis_result.get('similar_blocks', []),
+                        'file_matrix': file_analysis_result.get('similarity_matrix', {})
+                    },
+                    'structural_analysis': file_analysis_result.get('structural_similarity', {}),
+                    'analysis_timestamp': datetime.now().isoformat(),
+                    'comparison_stats': {
+                        'total_source_files': len(file_analysis_result.get('source_files', [])),
+                        'total_target_files': len(file_analysis_result.get('target_files', [])),
+                        'compared_file_pairs': file_analysis_result.get('total_comparisons', 0),
+                        'significant_similarities': file_analysis_result.get('significant_similarities', 0),
+                        'processing_time': file_analysis_result.get('processing_time', 0)
+                    }
                 }
-            }
+            else:
+                # Fallback to legacy concatenated analysis
+                source_code = self._get_or_generate_code(source_repo) if 'source_code' not in locals() else source_code
+                target_code = self._get_or_generate_code(target_repo) if 'target_code' not in locals() else target_code
+                
+                detailed_result = {
+                    'source_repository': {
+                        'id': source_repo.get('id'),
+                        'name': source_repo.get('name'),
+                        'language': source_repo.get('language'),
+                        'size': source_repo.get('size'),
+                        'code_length': len(source_code)
+                    },
+                    'target_repository': {
+                        'id': target_repo.get('id'),
+                        'name': target_repo.get('name'),
+                        'language': target_repo.get('language'),
+                        'size': target_repo.get('size'),
+                        'code_length': len(target_code)
+                    },
+                    'similarity': {
+                        'score': round(similarity_score, 4),
+                        'percentage': round(similarity_score * 100, 2),
+                        'level': 'high' if similarity_score >= 0.7 else ('medium' if similarity_score >= 0.4 else 'low'),
+                        'algorithm': algorithm,
+                        'algorithm_name': f"{algorithm.title()} (Legacy Concatenated)"
+                    },
+                    'code_comparison': {
+                        'source_code': self._format_code_for_display(source_code),
+                        'target_code': self._format_code_for_display(target_code),
+                        'similar_blocks': self._identify_similar_blocks(source_code, target_code),
+                        'diff_lines': self._generate_diff_lines(source_code, target_code)
+                    },
+                    'winnowing_details': self._get_winnowing_details(source_code, target_code) if SIMILARITY_ALGORITHMS_AVAILABLE else None,
+                    'analysis_timestamp': datetime.now().isoformat(),
+                    'comparison_stats': {
+                        'source_lines': source_code.count('\n') + 1,
+                        'target_lines': target_code.count('\n') + 1,
+                        'similar_line_count': self._count_similar_lines(source_code, target_code),
+                        'unique_source_lines': 0,
+                        'unique_target_lines': 0
+                    }
+                }
             
             return detailed_result
             
@@ -1117,6 +1249,171 @@ module.exports = {{ processData, validateInput }};
                 'timestamp': analysis_record['timestamp']
             }
         }
+    
+    def _get_file_by_file_details(self, source_repo: Dict[str, Any], target_repo: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Get detailed file-by-file analysis results."""
+        try:
+            from algorithms.file_comparison import FileComparisonEngine
+            
+            source_path = self._get_repository_path(source_repo)
+            target_path = self._get_repository_path(target_repo)
+            
+            if not source_path or not target_path:
+                return None
+            
+            # Perform file-by-file analysis
+            engine = FileComparisonEngine(k=6, w=10, similarity_threshold=0.1)
+            result = engine.analyze_repositories(
+                source_path, target_path,
+                str(source_repo.get('id')), str(target_repo.get('id'))
+            )
+            
+            # Convert result to dictionary format for frontend
+            source_files = []
+            target_files = []
+            
+            # Collect source files information
+            if hasattr(result, 'file_similarities'):
+                source_file_names = set()
+                target_file_names = set()
+                
+                for fs in result.file_similarities:
+                    source_file_names.add(fs.source_file.filename)
+                    target_file_names.add(fs.target_file.filename)
+                
+                source_files = list(source_file_names)
+                target_files = list(target_file_names)
+            
+            # Format similar blocks from file comparisons
+            similar_blocks = []
+            if hasattr(result, 'file_similarities'):
+                for fs in result.file_similarities[:20]:  # Limit to top 20 for performance
+                    for block in fs.similar_blocks[:5]:  # Top 5 blocks per file pair
+                        similar_blocks.append({
+                            'source_file': fs.source_file.filename,
+                            'target_file': fs.target_file.filename,
+                            'source_lines': block.get('source_lines', {}),
+                            'target_lines': block.get('target_lines', {}),
+                            'source_code': block.get('source_code', ''),
+                            'target_code': block.get('target_code', ''),
+                            'similarity_score': fs.similarity_score
+                        })
+            
+            # Create similarity matrix for top file pairs
+            similarity_matrix = {}
+            if hasattr(result, 'file_similarities'):
+                for fs in result.file_similarities[:10]:  # Top 10 pairs
+                    key = f"{fs.source_file.filename} vs {fs.target_file.filename}"
+                    similarity_matrix[key] = {
+                        'similarity': fs.similarity_score,
+                        'source_file': fs.source_file.filename,
+                        'target_file': fs.target_file.filename,
+                        'matched_fingerprints': fs.matched_fingerprints,
+                        'total_fingerprints': fs.winnowing_fingerprints
+                    }
+            
+            return {
+                'source_files': source_files,
+                'target_files': target_files,
+                'total_comparisons': result.analysis_summary.get('total_comparisons', 0),
+                'exact_copies': result.analysis_summary.get('exact_copies', 0),
+                'modified_copies': result.analysis_summary.get('modified_copies', 0),
+                'significant_similarities': result.analysis_summary.get('significant_similarities', 0),
+                'weighted_similarity': result.weighted_similarity,
+                'overall_similarity': result.overall_similarity,
+                'processing_time': result.processing_time,
+                'file_similarities': [
+                    {
+                        'source_file': fs.source_file.filename,
+                        'target_file': fs.target_file.filename,
+                        'similarity': fs.similarity_score,
+                        'file_type': fs.source_file.file_type,
+                        'importance_weight': fs.source_file.importance_weight
+                    } for fs in result.file_similarities[:15]  # Top 15 results
+                ],
+                'top_similar_files': result.analysis_summary.get('top_similar_files', []),
+                'similar_blocks': similar_blocks,
+                'similarity_matrix': similarity_matrix,
+                'structural_similarity': result.structural_similarity
+            }
+            
+        except Exception as e:
+            logger.error(f"Error in file-by-file details: {e}")
+            return None
+    
+    def _format_file_by_file_code(self, files: List[str], max_files: int = 10) -> Dict[str, Any]:
+        """Format file list for side-by-side code display."""
+        try:
+            formatted_files = []
+            
+            for filename in files[:max_files]:
+                # Try to get actual file content from the file_by_file analysis
+                file_content = self._get_actual_file_content(filename)
+                
+                if not file_content:
+                    # Fallback content
+                    file_content = f"// File: {filename}\n// Content would be displayed here for file-by-file analysis\n"
+                
+                lines = file_content.split('\n')
+                formatted_files.append({
+                    'filename': filename,
+                    'lines': [{'number': j + 1, 'content': line} for j, line in enumerate(lines[:100])],  # Limit to 100 lines
+                    'total_lines': len(lines),
+                    'truncated': len(lines) > 100
+                })
+            
+            return {
+                'files': formatted_files,
+                'total_files': len(files),
+                'displayed_files': len(formatted_files),
+                'analysis_type': 'file_by_file'
+            }
+            
+        except Exception as e:
+            logger.warning(f"Error formatting file-by-file code: {e}")
+            return {
+                'files': [],
+                'total_files': 0,
+                'displayed_files': 0,
+                'analysis_type': 'file_by_file',
+                'error': str(e)
+            }
+    
+    def _get_actual_file_content(self, filename: str) -> Optional[str]:
+        """Get actual file content for display in side-by-side view."""
+        try:
+            # Look for the file in demo repositories
+            demo_paths = [
+                os.path.join("data", "demo_repos"),
+                os.path.join("data", "demo_repos_js_filtered"),
+                os.path.join("data", "demo_repos_python"),
+            ]
+            
+            for base_path in demo_paths:
+                if not os.path.exists(base_path):
+                    continue
+                    
+                for repo_dir in os.listdir(base_path):
+                    repo_path = os.path.join(base_path, repo_dir)
+                    if not os.path.isdir(repo_path):
+                        continue
+                        
+                    # Search for the file in this repository
+                    for root, dirs, files in os.walk(repo_path):
+                        if filename in files:
+                            file_path = os.path.join(root, filename)
+                            try:
+                                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                                    content = f.read()
+                                    return content
+                            except:
+                                continue
+            
+            return None
+            
+        except Exception as e:
+            logger.warning(f"Error getting actual file content for {filename}: {e}")
+            return None
     
     def get_analysis_history(self) -> List[Dict[str, Any]]:
         """Get history of analyses performed in this session."""

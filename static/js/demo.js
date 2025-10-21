@@ -22,42 +22,11 @@ function demoApp() {
         showDetailModal: false,
         detailLoading: false,
         detailData: null,
-        activeDetailTab: 'comparison',
+        activeDetailTab: 'files',
 
         // Helper functions for templates
-        formatCodeForDisplay(codeData) {
-            if (!codeData || !codeData.lines) {
-                return 'No code available';
-            }
-            
-            // Get similar blocks for highlighting
-            const similarBlocks = this.detailData?.code_comparison?.similar_blocks || [];
-            const similarLines = new Set();
-            
-            // Collect all similar line numbers
-            similarBlocks.forEach(block => {
-                if (block.source_line) similarLines.add(block.source_line);
-                if (block.target_line) similarLines.add(block.target_line);
-            });
-            
-            return codeData.lines.map(line => {
-                const lineNum = line.number;
-                const isHighlighted = similarLines.has(lineNum);
-                const bgColor = isHighlighted ? 'bg-yellow-100' : '';
-                const textColor = isHighlighted ? 'text-gray-900' : 'text-gray-800';
-                
-                return `<div class="flex ${bgColor}">` +
-                       `<span class="text-gray-400 select-none mr-4 px-2">${lineNum.toString().padStart(3, ' ')}</span>` +
-                       `<span class="${textColor}">${this.escapeHtml(line.content)}</span>` +
-                       `</div>`;
-            }).join('');
-        },
-        
-        escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text || '';
-            return div.innerHTML;
-        },
+
+
 
         // Algorithm descriptions
         algorithmDescriptions: {
@@ -68,7 +37,6 @@ function demoApp() {
 
         // Initialize the app
         async init() {
-            console.log('Initializing Code Turnitin Demo...');
             await this.loadRepositories();
             await this.refreshStatistics();
             
@@ -89,7 +57,6 @@ function demoApp() {
                 const data = await response.json();
                 
                 this.repositories = data.repositories || [];
-                console.log(`Loaded ${this.repositories.length} repositories`);
             } catch (error) {
                 console.error('Error loading repositories:', error);
                 this.showNotification('Error loading repositories', 'error');
@@ -111,7 +78,6 @@ function demoApp() {
             this.selectedCandidates = [];
             this.analysisResults = null;
             
-            console.log('Selected repository:', repo.name);
             await this.loadCandidates();
         },
 
@@ -131,8 +97,6 @@ function demoApp() {
                     this.selectedCandidates = this.candidates.slice(0, Math.min(5, this.candidates.length))
                                                              .map(c => c.id);
                 }
-                
-                console.log(`Loaded ${this.candidates.length} candidates`);
             } catch (error) {
                 console.error('Error loading candidates:', error);
                 this.showNotification('Error loading comparison candidates', 'error');
@@ -158,8 +122,6 @@ function demoApp() {
                     algorithm: this.selectedAlgorithm
                 };
 
-                console.log('Starting analysis with:', requestData);
-
                 const response = await fetch('/demo/api/analyze', {
                     method: 'POST',
                     headers: {
@@ -173,7 +135,6 @@ function demoApp() {
                 }
 
                 this.analysisResults = await response.json();
-                console.log('Analysis completed:', this.analysisResults);
 
                 // Show success notification
                 const avgSimilarity = (this.analysisResults.summary.average_similarity * 100).toFixed(1);
@@ -195,7 +156,6 @@ function demoApp() {
             try {
                 const response = await fetch('/demo/api/statistics');
                 this.statistics = await response.json();
-                console.log('Statistics refreshed');
             } catch (error) {
                 console.error('Error refreshing statistics:', error);
             }
@@ -290,8 +250,6 @@ function demoApp() {
                     notification.remove();
                 }
             }, 5000);
-            
-            console.log(`Notification [${type}]: ${message}`);
         },
 
         // Get notification color classes
@@ -419,15 +377,12 @@ window.demoUtils = {
             this.showDetailModal = true;
             this.detailLoading = true;
             this.detailData = null;
-            this.activeDetailTab = 'comparison';
+            this.activeDetailTab = 'files';
 
             const sourceId = this.selectedRepo.id;
             const targetId = comparison.target_repository.id;
 
-            console.log('🔍 Request Details:', { sourceId, targetId, selectedRepo: this.selectedRepo, comparison });
-
             const response = await fetch(`/demo/api/comparison-detail/${sourceId}/${targetId}`);
-            console.log('🔍 API Response Status:', response.status, response.statusText);
             
             if (!response.ok) {
                 throw new Error(`Failed to load detailed comparison: ${response.statusText}`);
@@ -447,7 +402,7 @@ window.demoUtils = {
     closeDetailModal() {
         this.showDetailModal = false;
         this.detailData = null;
-        this.activeDetailTab = 'comparison';
+        this.activeDetailTab = 'files';
     },
 
     // Copy detailed comparison results to clipboard
@@ -484,8 +439,6 @@ Generated by Code Turnitin Demo System`;
 
 // Initialize demo when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Code Turnitin Demo Interface Loaded');
-    
     // Add keyboard shortcuts
     document.addEventListener('keydown', function(e) {
         // Ctrl/Cmd + R for reset (prevent default browser refresh)
