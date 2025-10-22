@@ -24,6 +24,12 @@ function demoApp() {
         detailData: null,
         activeDetailTab: 'files',
 
+        // File-by-file comparison properties
+        selectedSourceFile: '',
+        selectedTargetFile: '',
+        currentFilePairData: null,
+        isLoadingFilePair: false,
+
         // Helper functions for templates
 
 
@@ -366,6 +372,71 @@ function demoApp() {
             this.showDetailModal = false;
             this.detailData = null;
             this.activeDetailTab = 'comparison';
+            this.selectedSourceFile = '';
+            this.selectedTargetFile = '';
+            this.currentFilePairData = null;
+        },
+
+        // Initialize file-by-file comparison when detail modal opens
+        initializeFileComparison() {
+            if (this.detailData && this.detailData.side_by_side_comparison && 
+                this.detailData.side_by_side_comparison.mode === 'file_by_file') {
+                
+                // Set default file pair if available
+                const defaultPair = this.detailData.side_by_side_comparison.default_file_pair;
+                if (defaultPair) {
+                    this.selectedSourceFile = defaultPair.source_file;
+                    this.selectedTargetFile = defaultPair.target_file;
+                    this.currentFilePairData = defaultPair;
+                }
+            }
+        },
+
+        // Update file comparison when file selection changes
+        async updateFileComparison() {
+            if (!this.selectedSourceFile || !this.selectedTargetFile) {
+                this.currentFilePairData = null;
+                return;
+            }
+
+            if (!this.detailData) {
+                return;
+            }
+
+            try {
+                this.isLoadingFilePair = true;
+                
+                const sourceId = this.detailData.source_repository.id;
+                const targetId = this.detailData.target_repository.id;
+                
+                // Use query parameters for file paths to avoid URL parsing issues
+                const params = new URLSearchParams({
+                    source_file: this.selectedSourceFile,
+                    target_file: this.selectedTargetFile
+                });
+
+                const response = await fetch(`/demo/api/file-pair-comparison/${sourceId}/${targetId}?${params}`);
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to load file pair comparison: ${response.statusText}`);
+                }
+
+                this.currentFilePairData = await response.json();
+
+            } catch (error) {
+                console.error('Error loading file pair comparison:', error);
+                this.showNotification(`Failed to load file comparison: ${error.message}`, 'error');
+                this.currentFilePairData = null;
+            } finally {
+                this.isLoadingFilePair = false;
+            }
+        },
+
+        // Select a specific file pair from quick selection
+        selectFilePair(sourceFile, targetFile) {
+            this.selectedSourceFile = sourceFile;
+            this.selectedTargetFile = targetFile;
+            this.updateFileComparison();
         },
 
         // Copy detailed comparison results to clipboard
@@ -481,6 +552,9 @@ window.demoUtils = {
             }
 
             this.detailData = await response.json();
+            
+            // Initialize file-by-file comparison if available
+            this.initializeFileComparison();
 
         } catch (error) {
             console.error('Error loading detailed comparison:', error);

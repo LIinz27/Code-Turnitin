@@ -1110,141 +1110,91 @@ module.exports = {{ processData, validateInput }};
     
     def _get_detailed_line_similarities(self, source_repo: Dict[str, Any], target_repo: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Get detailed line-by-line similarity analysis using actual winnowing algorithm.
-        Returns mapping of similar lines with their similarity scores for accurate highlighting.
+        FILE-BY-FILE line similarity analysis using winnowing algorithm.
+        Returns file list and detailed similarity data for each file pair to enable
+        proper file selection in the side-by-side comparison.
         """
         try:
-            import tempfile
-            import os
-            from algorithms.similarity_checker import preprocess_code, generate_k_grams, hash_k_gram_optimized, winnowing
+            # Import file comparison engine for consistency with similarity calculation
+            from algorithms.file_comparison import FileComparisonEngine
             
-            # Get actual code content
-            source_code = self._get_or_generate_code(source_repo)
-            target_code = self._get_or_generate_code(target_repo)
+            # Get repository paths
+            source_path = self._get_repository_path(source_repo)
+            target_path = self._get_repository_path(target_repo)
             
-            # Create temporary files for processing
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f1:
-                f1.write(source_code)
-                source_temp = f1.name
+            if not source_path or not target_path:
+                logger.warning(f"Could not find repository paths for {source_repo.get('name')} or {target_repo.get('name')}")
+                return self._create_empty_file_by_file_similarity()
             
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f2:
-                f2.write(target_code)
-                target_temp = f2.name
+            # Initialize file comparison engine with optimized parameters
+            engine = FileComparisonEngine(k=5, w=4, similarity_threshold=0.1)
             
-            # Parameters for winnowing algorithm
-            k = 5  # K-gram size
-            w = 4  # Window size
+            # Perform file-by-file analysis
+            result = engine.analyze_repositories(
+                source_path, target_path,
+                str(source_repo.get('id')), str(target_repo.get('id'))
+            )
             
-            try:
-                # Step 1: Preprocess both files
-                source_tokens, source_lines = preprocess_code(source_temp, None)
-                target_tokens, target_lines = preprocess_code(target_temp, None)
+            # Extract file pairs and their detailed similarity
+            file_comparisons = []
+            all_source_files = set()
+            all_target_files = set()
+            
+            for comparison in result.file_similarities:
+                source_file = comparison.source_file.relative_path
+                target_file = comparison.target_file.relative_path
+                similarity_score = comparison.similarity_score
                 
-                if not source_tokens or not target_tokens:
-                    return self._create_empty_line_similarity()
+                all_source_files.add(source_file)
+                all_target_files.add(target_file)
                 
-                # Step 2: Generate k-grams with line information
-                source_kgrams = generate_k_grams(source_tokens, k)
-                target_kgrams = generate_k_grams(target_tokens, k)
-                
-                # Step 3: Hash k-grams and maintain line mapping
-                source_hashed = []
-                source_line_to_hash = {}  # Map line numbers to their hashes
-                
-                for kgram_tuple, start_line, end_line in source_kgrams:
-                    hash_val = hash_k_gram_optimized(kgram_tuple)
-                    source_hashed.append((hash_val, (kgram_tuple, start_line, end_line), (start_line, end_line)))
-                    
-                    # Map each line in the k-gram to this hash
-                    for line_num in range(start_line, end_line + 1):
-                        if line_num not in source_line_to_hash:
-                            source_line_to_hash[line_num] = []
-                        source_line_to_hash[line_num].append(hash_val)
-                
-                target_hashed = []
-                target_line_to_hash = {}
-                
-                for kgram_tuple, start_line, end_line in target_kgrams:
-                    hash_val = hash_k_gram_optimized(kgram_tuple)
-                    target_hashed.append((hash_val, (kgram_tuple, start_line, end_line), (start_line, end_line)))
-                    
-                    for line_num in range(start_line, end_line + 1):
-                        if line_num not in target_line_to_hash:
-                            target_line_to_hash[line_num] = []
-                        target_line_to_hash[line_num].append(hash_val)
-                
-                # Step 4: Apply winnowing to get fingerprints
-                source_fingerprints = winnowing(source_hashed, w)
-                target_fingerprints = winnowing(target_hashed, w)
-                
-                # Step 5: Create sets of fingerprint hashes for comparison
-                source_fingerprint_hashes = set(fp[0] for fp in source_fingerprints)
-                target_fingerprint_hashes = set(fp[0] for fp in target_fingerprints)
-                matching_hashes = source_fingerprint_hashes.intersection(target_fingerprint_hashes)
-                
-                # Step 6: Map back to lines and calculate line similarities
-                source_line_similarities = {}
-                target_line_similarities = {}
-                
-                # For each line in source, check how many of its hashes match with target
-                for line_num, hashes in source_line_to_hash.items():
-                    matching_count = sum(1 for h in hashes if h in matching_hashes)
-                    total_count = len(hashes)
-                    similarity = matching_count / total_count if total_count > 0 else 0
-                    source_line_similarities[line_num] = similarity
-                
-                # For each line in target, check how many of its hashes match with source
-                for line_num, hashes in target_line_to_hash.items():
-                    matching_count = sum(1 for h in hashes if h in matching_hashes)
-                    total_count = len(hashes)
-                    similarity = matching_count / total_count if total_count > 0 else 0
-                    target_line_similarities[line_num] = similarity
-                
-                # Step 7: Find exact line matches for precise highlighting
-                exact_matches = []
-                for src_line, src_hashes in source_line_to_hash.items():
-                    for tgt_line, tgt_hashes in target_line_to_hash.items():
-                        # Check if lines have significant hash overlap
-                        common_hashes = set(src_hashes).intersection(set(tgt_hashes))
-                        if common_hashes and len(common_hashes) >= min(len(src_hashes), len(tgt_hashes)) * 0.8:
-                            exact_matches.append({
-                                'source_line': src_line,
-                                'target_line': tgt_line,
-                                'similarity': len(common_hashes) / max(len(src_hashes), len(tgt_hashes)),
-                                'matching_hashes': len(common_hashes)
-                            })
-                
-                # Step 8: Prepare formatted code with line numbers and content
-                source_formatted = self._format_code_with_similarity(source_code, source_line_similarities)
-                target_formatted = self._format_code_with_similarity(target_code, target_line_similarities)
-                
-                return {
-                    'source_code': source_formatted,
-                    'target_code': target_formatted,
-                    'source_line_similarities': source_line_similarities,
-                    'target_line_similarities': target_line_similarities,
-                    'exact_matches': exact_matches[:50],  # Limit for performance
-                    'winnowing_stats': {
-                        'k_value': k,
-                        'w_value': w,
-                        'source_fingerprints': len(source_fingerprints),
-                        'target_fingerprints': len(target_fingerprints),
-                        'matching_fingerprints': len(matching_hashes),
-                        'total_source_lines': len(source_lines),
-                        'total_target_lines': len(target_lines)
-                    }
+                # Only include pairs with meaningful similarity for display
+                if similarity_score > 0.1:  # 10% threshold
+                    file_comparisons.append({
+                        'source_file': source_file,
+                        'target_file': target_file,
+                        'similarity': similarity_score,
+                        'line_matches': [],  # Will be populated when specific file pair is selected
+                        'file_pair_id': f"{source_file}__vs__{target_file}"
+                    })
+            
+            # Sort by similarity score (highest first)
+            file_comparisons.sort(key=lambda x: x['similarity'], reverse=True)
+            
+            # Generate file lists for selection
+            source_files_list = sorted(list(all_source_files))
+            target_files_list = sorted(list(all_target_files))
+            
+            # Prepare default file pair (highest similarity)
+            default_file_pair = None
+            if file_comparisons:
+                best_match = file_comparisons[0]
+                default_file_pair = self._get_file_pair_details(
+                    source_path, target_path, 
+                    best_match['source_file'], best_match['target_file']
+                )
+            
+            return {
+                'mode': 'file_by_file',
+                'source_files': source_files_list,
+                'target_files': target_files_list,
+                'file_comparisons': file_comparisons[:20],  # Limit to top 20 matches
+                'default_file_pair': default_file_pair,
+                'analysis_summary': {
+                    'total_source_files': len(all_source_files),
+                    'total_target_files': len(all_target_files),
+                    'meaningful_comparisons': len(file_comparisons),
+                    'weighted_similarity': result.weighted_similarity,
+                    'overall_similarity': result.overall_similarity
                 }
+            }
                 
-            finally:
-                # Clean up temporary files
-                self._cleanup_temp_files(source_temp, target_temp)
-                
-        except ImportError:
-            logger.warning("Similarity algorithms not available, using fallback")
-            return self._create_fallback_line_similarity(source_repo, target_repo)
+        except ImportError as e:
+            logger.error(f"Could not import file comparison engine: {e}")
+            return self._create_fallback_file_by_file_similarity(source_repo, target_repo)
         except Exception as e:
-            logger.error(f"Error in detailed line similarity analysis: {e}")
-            return self._create_fallback_line_similarity(source_repo, target_repo)
+            logger.error(f"Error in file-by-file line similarity analysis: {e}")
+            return self._create_fallback_file_by_file_similarity(source_repo, target_repo)
     
     def _format_code_with_similarity(self, code: str, line_similarities: Dict[int, float]) -> Dict[str, Any]:
         """Format code with similarity information for each line."""
@@ -1280,16 +1230,235 @@ module.exports = {{ processData, validateInput }};
             'truncated': len(lines) > 200
         }
     
-    def _create_empty_line_similarity(self) -> Dict[str, Any]:
-        """Create empty line similarity result when analysis fails."""
+    def _get_file_pair_details(self, source_path: str, target_path: str, 
+                              source_file: str, target_file: str) -> Dict[str, Any]:
+        """Get detailed comparison for a specific file pair."""
+        try:
+            import tempfile
+            from algorithms.similarity_checker import preprocess_code, generate_k_grams, hash_k_gram_optimized, winnowing
+            
+            # Read file contents
+            source_file_path = os.path.join(source_path, source_file)
+            target_file_path = os.path.join(target_path, target_file)
+            
+            with open(source_file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                source_content = f.read()
+            
+            with open(target_file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                target_content = f.read()
+            
+            # Create temporary files for winnowing analysis
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f1:
+                f1.write(source_content)
+                source_temp = f1.name
+            
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f2:
+                f2.write(target_content)
+                target_temp = f2.name
+            
+            # Parameters for winnowing algorithm
+            k = 5  # K-gram size
+            w = 4  # Window size
+            
+            try:
+                # Apply winnowing algorithm for line-level similarity
+                source_tokens, source_lines = preprocess_code(source_temp, None)
+                target_tokens, target_lines = preprocess_code(target_temp, None)
+                
+                if not source_tokens or not target_tokens:
+                    return self._create_empty_file_pair_details(source_file, target_file, source_content, target_content)
+                
+                # Generate k-grams with line information
+                source_kgrams = generate_k_grams(source_tokens, k)
+                target_kgrams = generate_k_grams(target_tokens, k)
+                
+                # Hash k-grams and maintain line mapping
+                source_hashed = []
+                source_line_to_hash = {}
+                
+                for kgram_tuple, start_line, end_line in source_kgrams:
+                    hash_val = hash_k_gram_optimized(kgram_tuple)
+                    source_hashed.append((hash_val, (kgram_tuple, start_line, end_line), (start_line, end_line)))
+                    
+                    for line_num in range(start_line, end_line + 1):
+                        if line_num not in source_line_to_hash:
+                            source_line_to_hash[line_num] = []
+                        source_line_to_hash[line_num].append(hash_val)
+                
+                target_hashed = []
+                target_line_to_hash = {}
+                
+                for kgram_tuple, start_line, end_line in target_kgrams:
+                    hash_val = hash_k_gram_optimized(kgram_tuple)
+                    target_hashed.append((hash_val, (kgram_tuple, start_line, end_line), (start_line, end_line)))
+                    
+                    for line_num in range(start_line, end_line + 1):
+                        if line_num not in target_line_to_hash:
+                            target_line_to_hash[line_num] = []
+                        target_line_to_hash[line_num].append(hash_val)
+                
+                # Apply winnowing
+                source_fingerprints = winnowing(source_hashed, w)
+                target_fingerprints = winnowing(target_hashed, w)
+                
+                # Find matching hashes
+                source_fingerprint_hashes = set(fp[0] for fp in source_fingerprints)
+                target_fingerprint_hashes = set(fp[0] for fp in target_fingerprints)
+                matching_hashes = source_fingerprint_hashes.intersection(target_fingerprint_hashes)
+                
+                # Calculate line similarities
+                source_line_similarities = {}
+                target_line_similarities = {}
+                
+                for line_num, hashes in source_line_to_hash.items():
+                    matching_count = sum(1 for h in hashes if h in matching_hashes)
+                    total_count = len(hashes)
+                    similarity = matching_count / total_count if total_count > 0 else 0
+                    source_line_similarities[line_num] = similarity
+                
+                for line_num, hashes in target_line_to_hash.items():
+                    matching_count = sum(1 for h in hashes if h in matching_hashes)
+                    total_count = len(hashes)
+                    similarity = matching_count / total_count if total_count > 0 else 0
+                    target_line_similarities[line_num] = similarity
+                
+                # Find exact line matches
+                exact_matches = []
+                for src_line, src_hashes in source_line_to_hash.items():
+                    for tgt_line, tgt_hashes in target_line_to_hash.items():
+                        common_hashes = set(src_hashes).intersection(set(tgt_hashes))
+                        if common_hashes and len(common_hashes) >= min(len(src_hashes), len(tgt_hashes)) * 0.8:
+                            exact_matches.append({
+                                'source_line': src_line,
+                                'target_line': tgt_line,
+                                'similarity': len(common_hashes) / max(len(src_hashes), len(tgt_hashes)),
+                                'matching_hashes': len(common_hashes)
+                            })
+                
+                # Format code with similarities
+                source_formatted = self._format_code_with_similarity(source_content, source_line_similarities)
+                target_formatted = self._format_code_with_similarity(target_content, target_line_similarities)
+                
+                return {
+                    'source_file': source_file,
+                    'target_file': target_file,
+                    'source_code': source_formatted,
+                    'target_code': target_formatted,
+                    'source_line_similarities': source_line_similarities,
+                    'target_line_similarities': target_line_similarities,
+                    'exact_matches': exact_matches[:50],
+                    'winnowing_stats': {
+                        'k_value': k,
+                        'w_value': w,
+                        'source_fingerprints': len(source_fingerprints),
+                        'target_fingerprints': len(target_fingerprints),
+                        'matching_fingerprints': len(matching_hashes),
+                        'total_source_lines': len(source_lines),
+                        'total_target_lines': len(target_lines)
+                    }
+                }
+                
+            finally:
+                # Clean up temporary files
+                self._cleanup_temp_files(source_temp, target_temp)
+                
+        except Exception as e:
+            logger.error(f"Error getting file pair details for {source_file} vs {target_file}: {e}")
+            return self._create_empty_file_pair_details(source_file, target_file, source_content, target_content)
+    
+    def _create_empty_file_pair_details(self, source_file: str, target_file: str, 
+                                      source_content: str, target_content: str) -> Dict[str, Any]:
+        """Create empty file pair details when analysis fails."""
         return {
-            'source_code': {'lines': [], 'total_lines': 0, 'displayed_lines': 0, 'truncated': False},
-            'target_code': {'lines': [], 'total_lines': 0, 'displayed_lines': 0, 'truncated': False},
+            'source_file': source_file,
+            'target_file': target_file,
+            'source_code': self._format_code_with_similarity(source_content, {}),
+            'target_code': self._format_code_with_similarity(target_content, {}),
             'source_line_similarities': {},
             'target_line_similarities': {},
             'exact_matches': [],
             'winnowing_stats': None
         }
+    
+    def _create_empty_file_by_file_similarity(self) -> Dict[str, Any]:
+        """Create empty file-by-file similarity result when analysis fails."""
+        return {
+            'mode': 'file_by_file',
+            'source_files': [],
+            'target_files': [],
+            'file_comparisons': [],
+            'default_file_pair': None,
+            'analysis_summary': {
+                'total_source_files': 0,
+                'total_target_files': 0,
+                'meaningful_comparisons': 0,
+                'weighted_similarity': 0.0,
+                'overall_similarity': 0.0
+            }
+        }
+    
+    def _create_fallback_file_by_file_similarity(self, source_repo: Dict[str, Any], target_repo: Dict[str, Any]) -> Dict[str, Any]:
+        """Create fallback file-by-file similarity using simple approach."""
+        try:
+            source_path = self._get_repository_path(source_repo)
+            target_path = self._get_repository_path(target_repo)
+            
+            if not source_path or not target_path:
+                return self._create_empty_file_by_file_similarity()
+            
+            # Simple file discovery
+            source_files = self._discover_code_files(source_path)
+            target_files = self._discover_code_files(target_path)
+            
+            # Create basic file comparisons
+            file_comparisons = []
+            if source_files and target_files:
+                # Take first files as example
+                file_comparisons.append({
+                    'source_file': source_files[0],
+                    'target_file': target_files[0],
+                    'similarity': 0.5,  # Fallback similarity
+                    'line_matches': [],
+                    'file_pair_id': f"{source_files[0]}__vs__{target_files[0]}"
+                })
+            
+            return {
+                'mode': 'file_by_file',
+                'source_files': source_files[:10],  # Limit for fallback
+                'target_files': target_files[:10],
+                'file_comparisons': file_comparisons,
+                'default_file_pair': None,
+                'analysis_summary': {
+                    'total_source_files': len(source_files),
+                    'total_target_files': len(target_files),
+                    'meaningful_comparisons': len(file_comparisons),
+                    'weighted_similarity': 0.5,
+                    'overall_similarity': 0.5
+                }
+            }
+        except Exception as e:
+            logger.error(f"Error creating fallback file-by-file similarity: {e}")
+            return self._create_empty_file_by_file_similarity()
+    
+    def _discover_code_files(self, repo_path: str) -> List[str]:
+        """Discover code files in a repository."""
+        code_files = []
+        try:
+            for root, dirs, files in os.walk(repo_path):
+                # Skip unnecessary directories
+                dirs[:] = [d for d in dirs if not d.startswith('.') and 
+                          d not in ['node_modules', 'vendor', 'target', 'build', 'dist', '__pycache__', 'venv', 'env']]
+                
+                for file in files:
+                    if (file.endswith(('.py', '.java', '.js', '.jsx', '.ts', '.tsx', '.cpp', '.c', '.h')) and
+                        not file.startswith('.') and
+                        not file.endswith(('.min.js', '.min.css'))):
+                        relative_path = os.path.relpath(os.path.join(root, file), repo_path)
+                        code_files.append(relative_path.replace('\\', '/'))  # Normalize path separators
+        except Exception as e:
+            logger.error(f"Error discovering code files in {repo_path}: {e}")
+        
+        return sorted(code_files)
     
     def _create_fallback_line_similarity(self, source_repo: Dict[str, Any], target_repo: Dict[str, Any]) -> Dict[str, Any]:
         """Create fallback line similarity using simple text matching."""

@@ -186,6 +186,58 @@ def demo_api_comparison_detail(source_id, target_id):
         return jsonify({'error': f'Detailed comparison failed: {str(e)}'}), 500
 
 
+@web_bp.route('/demo/api/file-pair-comparison/<source_id>/<target_id>')
+def demo_api_file_pair_comparison(source_id, target_id):
+    """API endpoint to get detailed comparison for specific file pair"""
+    try:
+        # Get file parameters from request
+        from flask import request
+        source_file = request.args.get('source_file')
+        target_file = request.args.get('target_file')
+        
+        if not source_file or not target_file:
+            return jsonify({'error': 'source_file and target_file parameters are required'}), 400
+        
+        # Get repositories
+        handler = get_demo_handler()
+        source_repo = None
+        target_repo = None
+        
+        # Find source repository
+        for lang in handler.get_available_languages():
+            repo = handler.get_repository_by_id(source_id, lang)
+            if repo:
+                source_repo = repo
+                break
+        
+        # Find target repository
+        for lang in handler.get_available_languages():
+            repo = handler.get_repository_by_id(target_id, lang)
+            if repo:
+                target_repo = repo
+                break
+        
+        if not source_repo or not target_repo:
+            return jsonify({'error': 'One or both repositories not found'}), 404
+        
+        # Get file pair comparison
+        analyzer = get_demo_analyzer()
+        source_path = analyzer._get_repository_path(source_repo)
+        target_path = analyzer._get_repository_path(target_repo)
+        
+        if not source_path or not target_path:
+            return jsonify({'error': 'Repository paths not found'}), 404
+        
+        file_pair_details = analyzer._get_file_pair_details(
+            source_path, target_path, source_file, target_file
+        )
+        
+        return jsonify(file_pair_details)
+        
+    except Exception as e:
+        return jsonify({'error': f'File pair comparison failed: {str(e)}'}), 500
+
+
 @web_bp.route('/demo/api/statistics')
 def demo_api_statistics():
     """API endpoint to get demo session statistics"""
