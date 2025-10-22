@@ -98,6 +98,145 @@ button:active:not(:disabled) {
     border-left: 4px solid #f59e0b;
 }
 
+/* Code comparison panel styling */
+.code-panel {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.code-panel .line-number {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    color: #64748b;
+    font-weight: 500;
+    user-select: none;
+    min-width: 48px;
+}
+
+/* Code line highlighting based on similarity */
+.code-line-high {
+    background-color: rgba(239, 68, 68, 0.1) !important;
+    border-left: 3px solid #ef4444 !important;
+}
+
+.code-line-medium {
+    background-color: rgba(245, 158, 11, 0.1) !important;
+    border-left: 3px solid #f59e0b !important;
+}
+
+.code-line-low {
+    background-color: rgba(59, 130, 246, 0.1) !important;
+    border-left: 3px solid #3b82f6 !important;
+}
+
+.code-line-none {
+    background-color: transparent;
+    border-left: 3px solid transparent;
+}
+
+/* Enhanced hover effects for code lines */
+.code-panel .flex:hover {
+    background-color: rgba(0, 0, 0, 0.02) !important;
+}
+
+.code-panel .code-line-high:hover {
+    background-color: rgba(239, 68, 68, 0.15) !important;
+}
+
+.code-panel .code-line-medium:hover {
+    background-color: rgba(245, 158, 11, 0.15) !important;
+}
+
+.code-panel .code-line-low:hover {
+    background-color: rgba(59, 130, 246, 0.15) !important;
+}
+
+/* Similarity indicator dots */
+.similarity-dot-high {
+    background-color: #ef4444;
+    animation: pulseRed 2s infinite;
+}
+
+.similarity-dot-medium {
+    background-color: #f59e0b;
+    animation: pulseYellow 2s infinite;
+}
+
+.similarity-dot-low {
+    background-color: #3b82f6;
+    animation: pulseBlue 2s infinite;
+}
+
+@keyframes pulseRed {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.1); }
+}
+
+@keyframes pulseYellow {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.1); }
+}
+
+@keyframes pulseBlue {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.1); }
+}
+
+/* Code comparison container styling */
+.code-comparison-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    height: 400px;
+}
+
+.code-comparison-container .code-panel {
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.code-comparison-container .code-panel-header {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border-bottom: 1px solid #e5e7eb;
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    color: #374151;
+}
+
+/* Exact matches highlight animation */
+@keyframes highlightMatch {
+    0% { background-color: rgba(34, 197, 94, 0.3); }
+    100% { background-color: rgba(34, 197, 94, 0.1); }
+}
+
+.exact-match-highlight {
+    animation: highlightMatch 1s ease-out;
+    border-left: 4px solid #22c55e !important;
+}
+
+/* Responsive design for code panels */
+@media (max-width: 1024px) {
+    .code-comparison-container {
+        grid-template-columns: 1fr;
+        height: auto;
+    }
+    
+    .code-panel {
+        height: 300px;
+        margin-bottom: 1rem;
+    }
+}
+
+/* Syntax highlighting enhancements */
+.keyword { color: #d73a49; font-weight: 600; }
+.string { color: #032f62; }
+.comment { color: #6a737d; font-style: italic; }
+.number { color: #005cc5; }
+.operator { color: #d73a49; }
+.function { color: #6f42c1; }
+.variable { color: #e36209; }
+
 .similarity-low {
     background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
     border-left: 4px solid #22c55e;

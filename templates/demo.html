@@ -9,22 +9,49 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/demo.css') }}">
     <style>
-        /* Custom styles for side-by-side code comparison */
-        .code-line {
-            transition: background-color 0.2s ease;
-            background-color: #ffeb3b !important; /* Yellow highlight for all lines */
-            border-left: 3px solid #ffc107 !important; /* Orange border */
+        /* Enhanced code comparison styles */
+        .code-line-transition {
+            transition: background-color 0.2s ease, border-left-color 0.2s ease;
         }
-        .code-line:hover {
-            background-color: #ffc107 !important; /* Darker yellow on hover */
+        
+        /* Override Tailwind utilities for code highlighting */
+        .bg-red-100.border-l-4.border-red-500 {
+            background-color: rgba(239, 68, 68, 0.1) !important;
+            border-left: 4px solid #ef4444 !important;
         }
-        .code-panel {
-            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        
+        .bg-yellow-50.border-l-4.border-yellow-400 {
+            background-color: rgba(245, 158, 11, 0.1) !important;
+            border-left: 4px solid #f59e0b !important;
         }
-        .line-number {
-            background-color: #f8f9fa;
-            border-right: 1px solid #e9ecef;
-            user-select: none;
+        
+        .bg-blue-50.border-l-4.border-blue-300 {
+            background-color: rgba(59, 130, 246, 0.1) !important;
+            border-left: 4px solid #3b82f6 !important;
+        }
+        
+        /* Modal z-index fix for proper layering */
+        .modal-overlay {
+            z-index: 9999;
+        }
+        
+        /* Code panel scrolling enhancement */
+        .code-panel-scroll::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        .code-panel-scroll::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        
+        .code-panel-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        
+        .code-panel-scroll::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
         }
     </style>
 </head>
@@ -448,6 +475,12 @@
                                     <i class="fas fa-table mr-1"></i>File Matrix
                                 </button>
 
+                                <button @click="activeDetailTab = 'comparison'" 
+                                        :class="activeDetailTab === 'comparison' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                                        class="py-2 px-1 border-b-2 font-medium text-sm">
+                                    <i class="fas fa-columns mr-1"></i>Code Comparison
+                                </button>
+
                                 <button @click="activeDetailTab = 'analysis'" 
                                         :class="activeDetailTab === 'analysis' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
                                         class="py-2 px-1 border-b-2 font-medium text-sm">
@@ -616,6 +649,150 @@
                                             <i class="fas fa-table text-3xl mb-3 opacity-50"></i>
                                             <p class="text-lg font-medium">No similarity matrix available</p>
                                             <p class="text-sm">Matrix data not generated for this analysis</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Code Comparison Tab -->
+                            <div x-show="activeDetailTab === 'comparison'" class="h-full">
+                                <div class="space-y-4">
+                                    <div class="flex justify-between items-center">
+                                        <h4 class="font-semibold text-gray-900 flex items-center">
+                                            <i class="fas fa-columns text-blue-600 mr-2"></i>
+                                            Side-by-Side Code Comparison
+                                        </h4>
+                                        <div x-show="detailData?.side_by_side_comparison?.winnowing_stats" class="text-xs text-gray-500 flex items-center space-x-4">
+                                            <span>K-grams: <strong x-text="detailData?.side_by_side_comparison?.winnowing_stats?.k_value || 'N/A'"></strong></span>
+                                            <span>Window: <strong x-text="detailData?.side_by_side_comparison?.winnowing_stats?.w_value || 'N/A'"></strong></span>
+                                            <span>Fingerprints: <strong x-text="(detailData?.side_by_side_comparison?.winnowing_stats?.matching_fingerprints || 0) + '/' + ((detailData?.side_by_side_comparison?.winnowing_stats?.source_fingerprints || 0) + (detailData?.side_by_side_comparison?.winnowing_stats?.target_fingerprints || 0))"></strong></span>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Side-by-side code panels -->
+                                    <div class="grid grid-cols-2 gap-4 h-96">
+                                        <!-- Source Code Panel -->
+                                        <div class="border border-gray-300 rounded-lg overflow-hidden bg-white">
+                                            <div class="bg-gray-50 border-b border-gray-300 px-4 py-2 flex justify-between items-center">
+                                                <h5 class="font-medium text-gray-900" x-text="detailData?.source_repository?.name || 'Source Repository'"></h5>
+                                                <div class="text-xs text-gray-500">
+                                                    <span x-text="detailData?.side_by_side_comparison?.source_code?.displayed_lines || 0"></span>
+                                                    <span x-show="detailData?.side_by_side_comparison?.source_code?.truncated"> / </span>
+                                                    <span x-show="detailData?.side_by_side_comparison?.source_code?.truncated" x-text="detailData?.side_by_side_comparison?.source_code?.total_lines || 0"></span>
+                                                    lines
+                                                    <span x-show="detailData?.side_by_side_comparison?.source_code?.truncated" class="text-orange-600">(truncated)</span>
+                                                </div>
+                                            </div>
+                                            <div class="code-panel overflow-auto h-80 text-sm font-mono">
+                                                <template x-for="line in detailData?.side_by_side_comparison?.source_code?.lines || []" :key="'src-' + line.number">
+                                                    <div class="flex hover:bg-gray-50" 
+                                                         :class="getLineHighlightClass(line.highlight_level)">
+                                                        <div class="line-number w-12 flex-shrink-0 px-2 py-1 text-xs text-gray-500 text-right bg-gray-100 border-r border-gray-200 select-none"
+                                                             x-text="line.number"></div>
+                                                        <div class="flex-1 px-3 py-1 whitespace-pre-wrap break-all" 
+                                                             x-text="line.content || ''"></div>
+                                                        <div x-show="line.has_similarity" 
+                                                             class="w-8 flex-shrink-0 flex items-center justify-center"
+                                                             :title="'Similarity: ' + formatSimilarityPercentage(line.similarity)">
+                                                            <div class="w-2 h-2 rounded-full" 
+                                                                 :class="line.highlight_level === 'high' ? 'bg-red-500' : (line.highlight_level === 'medium' ? 'bg-yellow-500' : 'bg-blue-500')"></div>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                                <div x-show="!detailData?.side_by_side_comparison?.source_code?.lines?.length" 
+                                                     class="flex items-center justify-center h-full text-gray-500">
+                                                    <div class="text-center">
+                                                        <i class="fas fa-file-code text-3xl mb-2 opacity-50"></i>
+                                                        <p>No source code available</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Target Code Panel -->
+                                        <div class="border border-gray-300 rounded-lg overflow-hidden bg-white">
+                                            <div class="bg-gray-50 border-b border-gray-300 px-4 py-2 flex justify-between items-center">
+                                                <h5 class="font-medium text-gray-900" x-text="detailData?.target_repository?.name || 'Target Repository'"></h5>
+                                                <div class="text-xs text-gray-500">
+                                                    <span x-text="detailData?.side_by_side_comparison?.target_code?.displayed_lines || 0"></span>
+                                                    <span x-show="detailData?.side_by_side_comparison?.target_code?.truncated"> / </span>
+                                                    <span x-show="detailData?.side_by_side_comparison?.target_code?.truncated" x-text="detailData?.side_by_side_comparison?.target_code?.total_lines || 0"></span>
+                                                    lines
+                                                    <span x-show="detailData?.side_by_side_comparison?.target_code?.truncated" class="text-orange-600">(truncated)</span>
+                                                </div>
+                                            </div>
+                                            <div class="code-panel overflow-auto h-80 text-sm font-mono">
+                                                <template x-for="line in detailData?.side_by_side_comparison?.target_code?.lines || []" :key="'tgt-' + line.number">
+                                                    <div class="flex hover:bg-gray-50" 
+                                                         :class="getLineHighlightClass(line.highlight_level)">
+                                                        <div class="line-number w-12 flex-shrink-0 px-2 py-1 text-xs text-gray-500 text-right bg-gray-100 border-r border-gray-200 select-none"
+                                                             x-text="line.number"></div>
+                                                        <div class="flex-1 px-3 py-1 whitespace-pre-wrap break-all" 
+                                                             x-text="line.content || ''"></div>
+                                                        <div x-show="line.has_similarity" 
+                                                             class="w-8 flex-shrink-0 flex items-center justify-center"
+                                                             :title="'Similarity: ' + formatSimilarityPercentage(line.similarity)">
+                                                            <div class="w-2 h-2 rounded-full" 
+                                                                 :class="line.highlight_level === 'high' ? 'bg-red-500' : (line.highlight_level === 'medium' ? 'bg-yellow-500' : 'bg-blue-500')"></div>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                                <div x-show="!detailData?.side_by_side_comparison?.target_code?.lines?.length" 
+                                                     class="flex items-center justify-center h-full text-gray-500">
+                                                    <div class="text-center">
+                                                        <i class="fas fa-file-code text-3xl mb-2 opacity-50"></i>
+                                                        <p>No target code available</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Exact Matches Summary -->
+                                    <div x-show="detailData?.side_by_side_comparison?.exact_matches?.length" 
+                                         class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                        <h5 class="font-medium text-blue-900 mb-3 flex items-center">
+                                            <i class="fas fa-link text-blue-600 mr-2"></i>
+                                            Exact Line Matches (<span x-text="detailData?.side_by_side_comparison?.exact_matches?.length || 0"></span>)
+                                        </h5>
+                                        <div class="grid grid-cols-1 gap-2 max-h-32 overflow-y-auto">
+                                            <template x-for="match in (detailData?.side_by_side_comparison?.exact_matches || []).slice(0, 10)" :key="match.source_line + '-' + match.target_line">
+                                                <div class="text-sm bg-white rounded px-3 py-2 border border-blue-100">
+                                                    <span class="font-medium">Lines</span>
+                                                    <span class="text-blue-600 font-mono" x-text="match.source_line"></span>
+                                                    ↔
+                                                    <span class="text-blue-600 font-mono" x-text="match.target_line"></span>
+                                                    <span class="text-gray-500 ml-2">
+                                                        (<span x-text="Math.round(match.similarity * 100)"></span>% match)
+                                                    </span>
+                                                </div>
+                                            </template>
+                                        </div>
+                                        <div x-show="(detailData?.side_by_side_comparison?.exact_matches?.length || 0) > 10" 
+                                             class="text-xs text-blue-600 mt-2">
+                                            Showing first 10 of <span x-text="detailData?.side_by_side_comparison?.exact_matches?.length"></span> matches
+                                        </div>
+                                    </div>
+
+                                    <!-- Legend -->
+                                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                                        <h5 class="font-medium text-gray-900 mb-3">Similarity Legend</h5>
+                                        <div class="flex flex-wrap gap-4 text-sm">
+                                            <div class="flex items-center">
+                                                <div class="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
+                                                <span>High similarity (80%+)</span>
+                                            </div>
+                                            <div class="flex items-center">
+                                                <div class="w-3 h-3 rounded-full bg-yellow-500 mr-2"></div>
+                                                <span>Medium similarity (50-79%)</span>
+                                            </div>
+                                            <div class="flex items-center">
+                                                <div class="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
+                                                <span>Low similarity (20-49%)</span>
+                                            </div>
+                                            <div class="flex items-center">
+                                                <span class="text-gray-500">No highlighting = No similarity detected</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

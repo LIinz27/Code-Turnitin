@@ -930,6 +930,7 @@ module.exports = {{ processData, validateInput }};
                         'similar_blocks': file_analysis_result.get('similar_blocks', []),
                         'file_matrix': file_analysis_result.get('similarity_matrix', {})
                     },
+                    'side_by_side_comparison': self._get_detailed_line_similarities(source_repo, target_repo),
                     'structural_analysis': file_analysis_result.get('structural_similarity', {}),
                     'analysis_timestamp': datetime.now().isoformat(),
                     'comparison_stats': {
@@ -973,6 +974,7 @@ module.exports = {{ processData, validateInput }};
                         'similar_blocks': self._identify_similar_blocks(source_code, target_code),
                         'diff_lines': self._generate_diff_lines(source_code, target_code)
                     },
+                    'side_by_side_comparison': self._get_detailed_line_similarities(source_repo, target_repo),
                     'winnowing_details': self._get_winnowing_details(source_code, target_code) if SIMILARITY_ALGORITHMS_AVAILABLE else None,
                     'analysis_timestamp': datetime.now().isoformat(),
                     'comparison_stats': {
@@ -1105,6 +1107,255 @@ module.exports = {{ processData, validateInput }};
         source_lines = set(line.strip() for line in source_code.split('\n') if line.strip())
         target_lines = set(line.strip() for line in target_code.split('\n') if line.strip())
         return len(source_lines.intersection(target_lines))
+    
+    def _get_detailed_line_similarities(self, source_repo: Dict[str, Any], target_repo: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Get detailed line-by-line similarity analysis using actual winnowing algorithm.
+        Returns mapping of similar lines with their similarity scores for accurate highlighting.
+        """
+        try:
+            import tempfile
+            import os
+            from algorithms.similarity_checker import preprocess_code, generate_k_grams, hash_k_gram_optimized, winnowing
+            
+            # Get actual code content
+            source_code = self._get_or_generate_code(source_repo)
+            target_code = self._get_or_generate_code(target_repo)
+            
+            # Create temporary files for processing
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f1:
+                f1.write(source_code)
+                source_temp = f1.name
+            
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f2:
+                f2.write(target_code)
+                target_temp = f2.name
+            
+            # Parameters for winnowing algorithm
+            k = 5  # K-gram size
+            w = 4  # Window size
+            
+            try:
+                # Step 1: Preprocess both files
+                source_tokens, source_lines = preprocess_code(source_temp, None)
+                target_tokens, target_lines = preprocess_code(target_temp, None)
+                
+                if not source_tokens or not target_tokens:
+                    return self._create_empty_line_similarity()
+                
+                # Step 2: Generate k-grams with line information
+                source_kgrams = generate_k_grams(source_tokens, k)
+                target_kgrams = generate_k_grams(target_tokens, k)
+                
+                # Step 3: Hash k-grams and maintain line mapping
+                source_hashed = []
+                source_line_to_hash = {}  # Map line numbers to their hashes
+                
+                for kgram_tuple, start_line, end_line in source_kgrams:
+                    hash_val = hash_k_gram_optimized(kgram_tuple)
+                    source_hashed.append((hash_val, (kgram_tuple, start_line, end_line), (start_line, end_line)))
+                    
+                    # Map each line in the k-gram to this hash
+                    for line_num in range(start_line, end_line + 1):
+                        if line_num not in source_line_to_hash:
+                            source_line_to_hash[line_num] = []
+                        source_line_to_hash[line_num].append(hash_val)
+                
+                target_hashed = []
+                target_line_to_hash = {}
+                
+                for kgram_tuple, start_line, end_line in target_kgrams:
+                    hash_val = hash_k_gram_optimized(kgram_tuple)
+                    target_hashed.append((hash_val, (kgram_tuple, start_line, end_line), (start_line, end_line)))
+                    
+                    for line_num in range(start_line, end_line + 1):
+                        if line_num not in target_line_to_hash:
+                            target_line_to_hash[line_num] = []
+                        target_line_to_hash[line_num].append(hash_val)
+                
+                # Step 4: Apply winnowing to get fingerprints
+                source_fingerprints = winnowing(source_hashed, w)
+                target_fingerprints = winnowing(target_hashed, w)
+                
+                # Step 5: Create sets of fingerprint hashes for comparison
+                source_fingerprint_hashes = set(fp[0] for fp in source_fingerprints)
+                target_fingerprint_hashes = set(fp[0] for fp in target_fingerprints)
+                matching_hashes = source_fingerprint_hashes.intersection(target_fingerprint_hashes)
+                
+                # Step 6: Map back to lines and calculate line similarities
+                source_line_similarities = {}
+                target_line_similarities = {}
+                
+                # For each line in source, check how many of its hashes match with target
+                for line_num, hashes in source_line_to_hash.items():
+                    matching_count = sum(1 for h in hashes if h in matching_hashes)
+                    total_count = len(hashes)
+                    similarity = matching_count / total_count if total_count > 0 else 0
+                    source_line_similarities[line_num] = similarity
+                
+                # For each line in target, check how many of its hashes match with source
+                for line_num, hashes in target_line_to_hash.items():
+                    matching_count = sum(1 for h in hashes if h in matching_hashes)
+                    total_count = len(hashes)
+                    similarity = matching_count / total_count if total_count > 0 else 0
+                    target_line_similarities[line_num] = similarity
+                
+                # Step 7: Find exact line matches for precise highlighting
+                exact_matches = []
+                for src_line, src_hashes in source_line_to_hash.items():
+                    for tgt_line, tgt_hashes in target_line_to_hash.items():
+                        # Check if lines have significant hash overlap
+                        common_hashes = set(src_hashes).intersection(set(tgt_hashes))
+                        if common_hashes and len(common_hashes) >= min(len(src_hashes), len(tgt_hashes)) * 0.8:
+                            exact_matches.append({
+                                'source_line': src_line,
+                                'target_line': tgt_line,
+                                'similarity': len(common_hashes) / max(len(src_hashes), len(tgt_hashes)),
+                                'matching_hashes': len(common_hashes)
+                            })
+                
+                # Step 8: Prepare formatted code with line numbers and content
+                source_formatted = self._format_code_with_similarity(source_code, source_line_similarities)
+                target_formatted = self._format_code_with_similarity(target_code, target_line_similarities)
+                
+                return {
+                    'source_code': source_formatted,
+                    'target_code': target_formatted,
+                    'source_line_similarities': source_line_similarities,
+                    'target_line_similarities': target_line_similarities,
+                    'exact_matches': exact_matches[:50],  # Limit for performance
+                    'winnowing_stats': {
+                        'k_value': k,
+                        'w_value': w,
+                        'source_fingerprints': len(source_fingerprints),
+                        'target_fingerprints': len(target_fingerprints),
+                        'matching_fingerprints': len(matching_hashes),
+                        'total_source_lines': len(source_lines),
+                        'total_target_lines': len(target_lines)
+                    }
+                }
+                
+            finally:
+                # Clean up temporary files
+                self._cleanup_temp_files(source_temp, target_temp)
+                
+        except ImportError:
+            logger.warning("Similarity algorithms not available, using fallback")
+            return self._create_fallback_line_similarity(source_repo, target_repo)
+        except Exception as e:
+            logger.error(f"Error in detailed line similarity analysis: {e}")
+            return self._create_fallback_line_similarity(source_repo, target_repo)
+    
+    def _format_code_with_similarity(self, code: str, line_similarities: Dict[int, float]) -> Dict[str, Any]:
+        """Format code with similarity information for each line."""
+        lines = code.split('\n')
+        formatted_lines = []
+        
+        for i, line_content in enumerate(lines[:200]):  # Limit to 200 lines for performance
+            line_num = i + 1
+            similarity = line_similarities.get(line_num, 0.0)
+            
+            # Determine highlight level based on similarity
+            if similarity >= 0.8:
+                highlight_level = 'high'
+            elif similarity >= 0.5:
+                highlight_level = 'medium'
+            elif similarity >= 0.2:
+                highlight_level = 'low'
+            else:
+                highlight_level = 'none'
+            
+            formatted_lines.append({
+                'number': line_num,
+                'content': line_content,
+                'similarity': round(similarity, 3),
+                'highlight_level': highlight_level,
+                'has_similarity': similarity > 0
+            })
+        
+        return {
+            'lines': formatted_lines,
+            'total_lines': len(lines),
+            'displayed_lines': len(formatted_lines),
+            'truncated': len(lines) > 200
+        }
+    
+    def _create_empty_line_similarity(self) -> Dict[str, Any]:
+        """Create empty line similarity result when analysis fails."""
+        return {
+            'source_code': {'lines': [], 'total_lines': 0, 'displayed_lines': 0, 'truncated': False},
+            'target_code': {'lines': [], 'total_lines': 0, 'displayed_lines': 0, 'truncated': False},
+            'source_line_similarities': {},
+            'target_line_similarities': {},
+            'exact_matches': [],
+            'winnowing_stats': None
+        }
+    
+    def _create_fallback_line_similarity(self, source_repo: Dict[str, Any], target_repo: Dict[str, Any]) -> Dict[str, Any]:
+        """Create fallback line similarity using simple text matching."""
+        source_code = self._get_or_generate_code(source_repo)
+        target_code = self._get_or_generate_code(target_repo)
+        
+        source_lines = source_code.split('\n')
+        target_lines = target_code.split('\n')
+        
+        # Simple line-by-line comparison
+        source_similarities = {}
+        target_similarities = {}
+        exact_matches = []
+        
+        for i, source_line in enumerate(source_lines[:100]):  # Limit for performance
+            source_line_clean = source_line.strip()
+            if len(source_line_clean) < 5:
+                continue
+                
+            best_similarity = 0
+            best_target_line = -1
+            
+            for j, target_line in enumerate(target_lines[:100]):
+                target_line_clean = target_line.strip()
+                if len(target_line_clean) < 5:
+                    continue
+                
+                # Simple similarity calculation
+                if source_line_clean == target_line_clean:
+                    similarity = 1.0
+                elif source_line_clean in target_line_clean or target_line_clean in source_line_clean:
+                    similarity = 0.8
+                else:
+                    # Calculate basic token similarity
+                    source_tokens = set(source_line_clean.split())
+                    target_tokens = set(target_line_clean.split())
+                    if source_tokens and target_tokens:
+                        similarity = len(source_tokens.intersection(target_tokens)) / len(source_tokens.union(target_tokens))
+                    else:
+                        similarity = 0
+                
+                if similarity > best_similarity:
+                    best_similarity = similarity
+                    best_target_line = j + 1
+            
+            if best_similarity > 0.5:
+                source_similarities[i + 1] = best_similarity
+                target_similarities[best_target_line] = best_similarity
+                exact_matches.append({
+                    'source_line': i + 1,
+                    'target_line': best_target_line,
+                    'similarity': best_similarity,
+                    'matching_hashes': 0
+                })
+        
+        source_formatted = self._format_code_with_similarity(source_code, source_similarities)
+        target_formatted = self._format_code_with_similarity(target_code, target_similarities)
+        
+        return {
+            'source_code': source_formatted,
+            'target_code': target_formatted,
+            'source_line_similarities': source_similarities,
+            'target_line_similarities': target_similarities,
+            'exact_matches': exact_matches,
+            'winnowing_stats': None
+        }
     
     def _get_or_generate_code(self, repo: Dict[str, Any]) -> str:
         """Get real code from downloaded repos or generate mock code for repository."""
