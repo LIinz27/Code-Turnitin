@@ -571,6 +571,29 @@ window.demoUtils = {
         this.activeDetailTab = 'files';
     },
 
+    // Select file for comparison preview
+    selectFileForComparison(file, type) {
+        // Handle file selection
+        const fileName = (typeof file === 'string') ? file : (file.path || file.name || 'Unnamed file');
+        
+        if (type === 'source') {
+            this.selectedSourceFile = fileName;
+        } else if (type === 'target') {
+            this.selectedTargetFile = fileName;
+        }
+        
+        // Show notification about file selection
+        this.showNotification(`Selected ${type} file: ${fileName}`, 'info');
+        
+        // If both files are selected, could trigger comparison
+        if (this.selectedSourceFile && this.selectedTargetFile && 
+            this.detailData?.source_repository?.id && this.detailData?.target_repository?.id) {
+            
+            // Auto-trigger file pair comparison
+            this.updateFileComparison();
+        }
+    },
+
     // Copy detailed comparison results to clipboard
     async copyDetailToClipboard() {
         if (!this.detailData) return;

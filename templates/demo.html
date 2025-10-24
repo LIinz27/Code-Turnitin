@@ -467,7 +467,7 @@
                                 <button @click="activeDetailTab = 'blocks'" 
                                         :class="activeDetailTab === 'blocks' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
                                         class="py-2 px-1 border-b-2 font-medium text-sm">
-                                    <i class="fas fa-code mr-1"></i>Similar Blocks
+                                    <i class="fas fa-folder-open mr-1"></i>Project Files
                                 </button>
                                 <button @click="activeDetailTab = 'matrix'" 
                                         :class="activeDetailTab === 'matrix' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
@@ -559,60 +559,100 @@
                                 </div>
                             </div>
 
-                            <!-- Similar Blocks Tab (Enhanced for File-by-File) -->
+                            <!-- Project Files Tab -->
                             <div x-show="activeDetailTab === 'blocks'" class="h-full">
                                 <div class="space-y-4">
                                     <div class="flex items-center justify-between">
                                         <h4 class="font-semibold text-gray-900 flex items-center">
-                                            <i class="fas fa-code text-blue-600 mr-2"></i>
-                                            Similar Code Blocks Across Files
+                                            <i class="fas fa-folder-open text-blue-600 mr-2"></i>
+                                            Project Files Comparison
                                         </h4>
                                         <div class="text-sm text-gray-500">
-                                            <span x-text="detailData?.file_analysis?.similar_blocks?.length || 0"></span> blocks found
+                                            <span x-text="(detailData?.comparison_stats?.total_source_files || 0) + (detailData?.comparison_stats?.total_target_files || 0)"></span> files total
                                         </div>
                                     </div>
                                     
                                     <div class="h-full overflow-y-auto space-y-4 pr-2" style="max-height: 50vh;">
-                                        <template x-for="block in detailData?.file_analysis?.similar_blocks || []" :key="block.source_file + '-' + block.target_file + '-' + block.source_lines?.start">
-                                            <div class="border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow">
-                                                <div class="flex justify-between items-start mb-3">
-                                                    <div class="flex-1">
-                                                        <div class="text-sm font-medium text-gray-900 mb-1">
-                                                            <span class="text-blue-600" x-text="block.source_file"></span> 
-                                                            <i class="fas fa-arrow-right mx-2 text-gray-400"></i>
-                                                            <span class="text-green-600" x-text="block.target_file"></span>
-                                                        </div>
-                                                        <div class="text-xs text-gray-500">
-                                                            Lines <span x-text="block.source_lines?.start"></span>-<span x-text="block.source_lines?.end"></span> 
-                                                            → 
-                                                            Lines <span x-text="block.target_lines?.start"></span>-<span x-text="block.target_lines?.end"></span>
-                                                        </div>
-                                                    </div>
-                                                    <span class="text-xs px-3 py-1 rounded-full font-medium bg-green-100 text-green-800">
-                                                        <span x-text="Math.round(block.similarity_score * 100)"></span>% Match
-                                                    </span>
+                                        <div class="grid grid-cols-2 gap-6">
+                                            <!-- Source Project Files -->
+                                            <div class="bg-blue-50 rounded-lg p-4">
+                                                <div class="flex items-center mb-3">
+                                                    <i class="fas fa-folder text-blue-600 mr-2"></i>
+                                                    <h5 class="font-medium text-blue-900" x-text="detailData?.source_repository?.name || 'Source Project'"></h5>
+                                                    <span class="ml-2 text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded-full" 
+                                                          x-text="detailData?.comparison_stats?.total_source_files || 0"></span>
                                                 </div>
-                                                
-                                                <div class="grid grid-cols-2 gap-4">
-                                                    <div>
-                                                        <div class="text-xs font-medium text-gray-600 mb-1">Source Code:</div>
-                                                        <div class="bg-blue-50 rounded-md border">
-                                                            <pre class="text-xs font-mono p-3 overflow-x-auto whitespace-pre-wrap text-gray-800 leading-relaxed" x-text="block.source_code"></pre>
+                                                <div class="space-y-1 max-h-64 overflow-y-auto">
+                                                    <template x-for="file in detailData?.file_analysis?.source_files || []" :key="file.path || file">
+                                                        <div class="flex items-center justify-between p-2 bg-white rounded border text-sm hover:bg-blue-100 transition-colors cursor-pointer"
+                                                             @click="selectFileForComparison(file, 'source')">
+                                                            <div class="flex items-center flex-1 min-w-0">
+                                                                <i class="fas fa-file-code text-blue-500 mr-2 flex-shrink-0"></i>
+                                                                <span class="truncate font-mono text-xs" x-text="(typeof file === 'string') ? file : (file.path || file.name || 'Unnamed file')"></span>
+                                                            </div>
+                                                            <div class="flex items-center space-x-2 flex-shrink-0">
+                                                                <span class="text-xs text-gray-500" x-text="(typeof file === 'object' && file.size) ? (file.size + ' bytes') : ''"></span>
+                                                                <button class="text-xs bg-blue-200 hover:bg-blue-300 text-blue-800 px-2 py-1 rounded transition-colors">
+                                                                    <i class="fas fa-eye"></i>
+                                                                </button>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                    <div>
-                                                        <div class="text-xs font-medium text-gray-600 mb-1">Target Code:</div>
-                                                        <div class="bg-green-50 rounded-md border">
-                                                            <pre class="text-xs font-mono p-3 overflow-x-auto whitespace-pre-wrap text-gray-800 leading-relaxed" x-text="block.target_code"></pre>
-                                                        </div>
+                                                    </template>
+                                                    <div x-show="!detailData?.file_analysis?.source_files?.length" class="text-center py-4 text-gray-500">
+                                                        <i class="fas fa-folder-open text-2xl mb-2 opacity-50"></i>
+                                                        <p class="text-sm">No files found</p>
                                                     </div>
                                                 </div>
                                             </div>
-                                        </template>
-                                        <div x-show="!detailData?.file_analysis?.similar_blocks?.length" class="text-center py-12 text-gray-500">
-                                            <i class="fas fa-search text-3xl mb-3 opacity-50"></i>
-                                            <p class="text-lg font-medium">No similar blocks found</p>
-                                            <p class="text-sm">Try analyzing repositories with more similar code</p>
+                                            
+                                            <!-- Target Project Files -->
+                                            <div class="bg-green-50 rounded-lg p-4">
+                                                <div class="flex items-center mb-3">
+                                                    <i class="fas fa-folder text-green-600 mr-2"></i>
+                                                    <h5 class="font-medium text-green-900" x-text="detailData?.target_repository?.name || 'Target Project'"></h5>
+                                                    <span class="ml-2 text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full" 
+                                                          x-text="detailData?.comparison_stats?.total_target_files || 0"></span>
+                                                </div>
+                                                <div class="space-y-1 max-h-64 overflow-y-auto">
+                                                    <template x-for="file in detailData?.file_analysis?.target_files || []" :key="file.path || file">
+                                                        <div class="flex items-center justify-between p-2 bg-white rounded border text-sm hover:bg-green-100 transition-colors cursor-pointer"
+                                                             @click="selectFileForComparison(file, 'target')">
+                                                            <div class="flex items-center flex-1 min-w-0">
+                                                                <i class="fas fa-file-code text-green-500 mr-2 flex-shrink-0"></i>
+                                                                <span class="truncate font-mono text-xs" x-text="(typeof file === 'string') ? file : (file.path || file.name || 'Unnamed file')"></span>
+                                                            </div>
+                                                            <div class="flex items-center space-x-2 flex-shrink-0">
+                                                                <span class="text-xs text-gray-500" x-text="(typeof file === 'object' && file.size) ? (file.size + ' bytes') : ''"></span>
+                                                                <button class="text-xs bg-green-200 hover:bg-green-300 text-green-800 px-2 py-1 rounded transition-colors">
+                                                                    <i class="fas fa-eye"></i>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </template>
+                                                    <div x-show="!detailData?.file_analysis?.target_files?.length" class="text-center py-4 text-gray-500">
+                                                        <i class="fas fa-folder-open text-2xl mb-2 opacity-50"></i>
+                                                        <p class="text-sm">No files found</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- File Comparison Stats -->
+                                        <div x-show="detailData?.comparison_stats" class="bg-gray-50 rounded-lg p-4 mt-4">
+                                            <div class="grid grid-cols-3 gap-4 text-center">
+                                                <div>
+                                                    <div class="text-2xl font-bold text-blue-600" x-text="detailData?.comparison_stats?.total_source_files || 0"></div>
+                                                    <div class="text-xs text-gray-600">Source Files</div>
+                                                </div>
+                                                <div>
+                                                    <div class="text-2xl font-bold text-green-600" x-text="detailData?.comparison_stats?.total_target_files || 0"></div>
+                                                    <div class="text-xs text-gray-600">Target Files</div>
+                                                </div>
+                                                <div>
+                                                    <div class="text-2xl font-bold text-purple-600" x-text="detailData?.comparison_stats?.compared_file_pairs || 0"></div>
+                                                    <div class="text-xs text-gray-600">Compared Pairs</div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

@@ -918,6 +918,8 @@ module.exports = {{ processData, validateInput }};
                         'weighted_similarity': file_analysis_result.get('weighted_similarity', similarity_score)
                     },
                     'file_analysis': {
+                        'source_files': file_analysis_result.get('source_files', []),
+                        'target_files': file_analysis_result.get('target_files', []),
                         'total_file_comparisons': file_analysis_result.get('total_comparisons', 0),
                         'exact_copies': file_analysis_result.get('exact_copies', 0),
                         'modified_copies': file_analysis_result.get('modified_copies', 0),
@@ -1693,7 +1695,7 @@ module.exports = {{ processData, validateInput }};
             target_files = []
             
             # Collect source files information
-            if hasattr(result, 'file_similarities'):
+            if hasattr(result, 'file_similarities') and len(result.file_similarities) > 0:
                 source_file_names = set()
                 target_file_names = set()
                 
@@ -1703,6 +1705,14 @@ module.exports = {{ processData, validateInput }};
                 
                 source_files = list(source_file_names)
                 target_files = list(target_file_names)
+                
+                logger.info(f"Collected {len(source_files)} source files and {len(target_files)} target files from analysis")
+            else:
+                # Fallback: scan directories for actual files
+                logger.info("No file_similarities found, scanning directories directly")
+                source_files = self._scan_repository_files(source_path)
+                target_files = self._scan_repository_files(target_path)
+                logger.info(f"Scanned {len(source_files)} source files and {len(target_files)} target files")
             
             # Format similar blocks from file comparisons
             similar_blocks = []
@@ -1760,6 +1770,35 @@ module.exports = {{ processData, validateInput }};
         except Exception as e:
             logger.error(f"Error in file-by-file details: {e}")
             return None
+    
+    def _scan_repository_files(self, repo_path: str, extensions: List[str] = None) -> List[str]:
+        """Scan repository directory for code files."""
+        try:
+            if not extensions:
+                extensions = ['.java', '.py', '.js', '.ts', '.cpp', '.c', '.cs', '.go', '.rs', '.php']
+            
+            files = []
+            repo_path_obj = Path(repo_path)
+            
+            if not repo_path_obj.exists():
+                logger.warning(f"Repository path does not exist: {repo_path}")
+                return files
+            
+            # Recursively scan for code files
+            for ext in extensions:
+                pattern = f"**/*{ext}"
+                for file_path in repo_path_obj.glob(pattern):
+                    if file_path.is_file():
+                        # Get relative path from repo root
+                        relative_path = file_path.relative_to(repo_path_obj)
+                        files.append(str(relative_path))
+            
+            logger.info(f"Found {len(files)} files in {repo_path}")
+            return sorted(files)[:50]  # Limit to 50 files for performance
+            
+        except Exception as e:
+            logger.error(f"Error scanning repository files: {e}")
+            return []
     
     def _format_file_by_file_code(self, files: List[str], max_files: int = 10) -> Dict[str, Any]:
         """Format file list for side-by-side code display."""
