@@ -183,8 +183,6 @@ class FileComparisonEngine:
             source_files = self._discover_files(source_repo_path)
             target_files = self._discover_files(target_repo_path)
             
-            logger.info(f"Found {len(source_files)} source files and {len(target_files)} target files")
-            
             # Perform file-by-file comparisons
             file_similarities = self._compare_all_files(source_files, target_files)
             
@@ -301,16 +299,20 @@ class FileComparisonEngine:
         """Determine if two files should be compared."""
         # Same extension
         if source_file.extension != target_file.extension:
+            logger.debug(f"DEBUG: Skipping comparison - different extensions: {source_file.extension} vs {target_file.extension}")
             return False
         
         # Both must be code files
         if source_file.file_type not in ['core', 'config'] or target_file.file_type not in ['core', 'config']:
+            logger.debug(f"DEBUG: Skipping comparison - file types: {source_file.file_type} vs {target_file.file_type}")
             return False
         
         # Skip very small files
         if source_file.lines_count < 5 or target_file.lines_count < 5:
+            logger.debug(f"DEBUG: Skipping comparison - small files: {source_file.lines_count} vs {target_file.lines_count} lines")
             return False
         
+        logger.debug(f"DEBUG: Will compare {source_file.filename} ({source_file.extension}) vs {target_file.filename} ({target_file.extension})")
         return True
     
     def _compare_files(self, source_file: FileInfo, target_file: FileInfo) -> Optional[FileSimilarity]:

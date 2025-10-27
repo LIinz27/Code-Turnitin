@@ -245,7 +245,8 @@ class DemoSimilarityAnalyzer:
                 logger.warning(f"Could not find repository paths for {source_repo.get('name')} or {target_repo.get('name')}")
                 return self._fallback_similarity_calculation("", "")
             
-            # Initialize file comparison engine with optimized parameters
+            # Initialize file comparison engine with standard threshold
+            # Using 0.1 (10%) threshold for reliable similarity detection
             engine = FileComparisonEngine(k=6, w=10, similarity_threshold=0.1)
             
             # Perform file-by-file analysis
@@ -1742,6 +1743,35 @@ module.exports = {{ processData, validateInput }};
                         'total_fingerprints': fs.winnowing_fingerprints
                     }
             
+            # Create file_similarities list
+            file_similarities_list = []
+            if hasattr(result, 'file_similarities') and result.file_similarities:
+                for i, fs in enumerate(result.file_similarities[:15]):  # Top 15 results
+                    try:
+                        file_sim = {
+                            'source_file': fs.source_file.filename,
+                            'target_file': fs.target_file.filename,
+                            'similarity': fs.similarity_score,
+                            'file_type': fs.source_file.file_type,
+                            'importance_weight': fs.source_file.importance_weight
+                        }
+                        file_similarities_list.append(file_sim)
+                    except Exception as e:
+                        logger.error(f"Error processing file similarity {i}: {e}")
+            else:
+                # If we have comparisons but no significant similarities, create a placeholder entry
+                total_comparisons = result.analysis_summary.get('total_comparisons', 0)
+                if total_comparisons > 0:
+                    # Add a placeholder entry to indicate comparisons were done but found low similarity
+                    file_similarities_list = [{
+                        'source_file': 'Multiple files compared',
+                        'target_file': f'{total_comparisons} comparisons performed',
+                        'similarity': 0.0,
+                        'file_type': 'analysis_summary',
+                        'importance_weight': 0.0,
+                        'note': 'No significant similarities found above threshold'
+                    }]
+            
             return {
                 'source_files': source_files,
                 'target_files': target_files,
@@ -1752,15 +1782,7 @@ module.exports = {{ processData, validateInput }};
                 'weighted_similarity': result.weighted_similarity,
                 'overall_similarity': result.overall_similarity,
                 'processing_time': result.processing_time,
-                'file_similarities': [
-                    {
-                        'source_file': fs.source_file.filename,
-                        'target_file': fs.target_file.filename,
-                        'similarity': fs.similarity_score,
-                        'file_type': fs.source_file.file_type,
-                        'importance_weight': fs.source_file.importance_weight
-                    } for fs in result.file_similarities[:15]  # Top 15 results
-                ],
+                'file_similarities': file_similarities_list,
                 'top_similar_files': result.analysis_summary.get('top_similar_files', []),
                 'similar_blocks': similar_blocks,
                 'similarity_matrix': similarity_matrix,

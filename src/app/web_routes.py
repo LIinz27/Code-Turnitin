@@ -4,6 +4,7 @@ Handles all template rendering routes and static file serving
 """
 from flask import Blueprint, render_template, send_from_directory, current_app, jsonify, request
 import sys
+import logging
 from pathlib import Path
 
 # Add demo modules to path
