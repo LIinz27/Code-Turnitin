@@ -31,6 +31,21 @@ print('Rate limit should be 5000/hour if token is valid')
 "
 ```
 
+## 📦 Dependencies Installation
+
+### Required Python Packages
+```bash
+# Install required packages
+pip install flask python-dotenv requests beautifulsoup4 lxml
+```
+
+### Package Requirements
+- **Flask** - Web framework for application
+- **python-dotenv** - Environment variable management
+- **requests** - HTTP requests for GitHub API
+- **beautifulsoup4** - HTML parsing for web scraping
+- **lxml** - XML/HTML parser backend
+
 ## ⚠️ Security Notes
 
 - **Never commit `.env` files** - Contains sensitive tokens
@@ -42,8 +57,9 @@ print('Rate limit should be 5000/hour if token is valid')
 
 1. `cp config/.env.template config/.env`
 2. Edit `config/.env` with your GitHub token
-3. Run `python app.py`
-4. Access http://127.0.0.1:5000
+3. Install dependencies: `pip install flask python-dotenv requests beautifulsoup4 lxml`
+4. Run `python app.py`
+5. Access http://127.0.0.1:5000 or http://192.168.0.23:5000
 
 ## 🔍 Troubleshooting
 

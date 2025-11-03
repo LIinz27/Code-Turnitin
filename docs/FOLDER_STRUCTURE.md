@@ -1,79 +1,101 @@
-# 📁 Struktur Folder Classroom Data
+# 📁 Code Turnitin - Project Structure
 
-## Struktur Folder Baru (Terorganisir)
-
-Sistem sekarang akan menyimpan data classroom dalam struktur folder yang terorganisir berdasarkan nama kelas dan nama tugas:
+## Current Project Structure
 
 ```
-data/
-└── classroom/
-    ├── Pemrograman_Web_2024/              # Nama Kelas
-    │   ├── Lab_Assignment_1/               # Nama Tugas
-    │   │   ├── student1_repo/              # Repository Mahasiswa 1
-    │   │   │   ├── index.html
-    │   │   │   ├── style.css
-    │   │   │   └── script.js
-    │   │   ├── student2_repo/              # Repository Mahasiswa 2
-    │   │   │   ├── index.html
-    │   │   │   └── main.js
-    │   │   └── student3_repo/
-    │   │       ├── home.html
-    │   │       └── app.js
-    │   │
-    │   ├── Lab_Assignment_2/               # Tugas Kedua
-    │   │   ├── student1_final_project/
-    │   │   ├── student2_final_project/
-    │   │   └── student3_final_project/
-    │   │
-    │   └── Midterm_Project/                # Tugas UTS
-    │       ├── group1_ecommerce/
-    │       ├── group2_portfolio/
-    │       └── group3_blog/
-    │
-    ├── Algoritma_Struktur_Data_2024/      # Kelas Lain
-    │   ├── Sorting_Algorithm/
-    │   │   ├── student1_quicksort/
-    │   │   ├── student2_mergesort/
-    │   │   └── student3_bubblesort/
-    │   │
-    │   └── Data_Structure_Implementation/
-    │       ├── student1_linkedlist/
-    │       ├── student2_stack_queue/
-    │       └── student3_binary_tree/
-    │
-    └── Mobile_App_Development_2024/       # Kelas Ketiga
-        ├── First_Flutter_App/
-        │   ├── student1_calculator/
-        │   ├── student2_todo_app/
-        │   └── student3_weather_app/
-        │
-        └── Final_Mobile_Project/
-            ├── team1_social_media_app/
-            ├── team2_e_learning_app/
-            └── team3_fitness_tracker/
+Code-Turnitin/
+├── app.py                              # Main application entry point
+├── main.py                             # Alternative entry point
+├── requirements.txt                    # Python dependencies
+├── config/
+│   ├── .env                           # Environment variables (not in git)
+│   └── .env.template                  # Environment template
+├── data/
+│   ├── cache/                         # Application cache
+│   ├── classroom/                     # GitHub Classroom data
+│   ├── demo/
+│   │   ├── demo_repositories.json     # Demo repository metadata
+│   │   ├── demo_repos/               # Java demo repositories
+│   │   ├── demo_repos_js_filtered/   # JavaScript demo repositories
+│   │   ├── demo_repos_python/        # Python demo repositories
+│   │   └── demo_repos_python_filtered/
+│   ├── github/                       # GitHub scraping data
+│   ├── mahasiswa/                    # Student data
+│   └── templates/                    # Data templates
+├── docs/                             # Documentation files
+│   ├── ENVIRONMENT_SETUP.md
+│   ├── FOLDER_STRUCTURE.md
+│   ├── IMPLEMENTATION_SUMMARY.md
+│   ├── README.MD
+│   ├── SIDE_BY_SIDE_COMPARISON_FEATURE.md
+│   └── THESIS_DEMO_ROADMAP.md
+├── src/                              # Source code
+│   ├── __init__.py
+│   ├── algorithms/
+│   │   ├── __init__.py
+│   │   ├── file_comparison.py        # File-by-file comparison engine
+│   │   ├── jaccard_similarity.py     # Jaccard similarity algorithm
+│   │   ├── similarity_base.py        # Base similarity interface
+│   │   └── winnowing_algorithm.py    # Winnowing algorithm implementation
+│   ├── app/
+│   │   ├── __init__.py
+│   │   ├── app_factory.py           # Flask application factory
+│   │   └── web_routes.py            # Web route handlers
+│   ├── demo/
+│   │   ├── __init__.py
+│   │   ├── demo_handler.py          # Demo data management
+│   │   └── demo_similarity.py       # Demo similarity analysis
+│   ├── scrapers/
+│   │   ├── __init__.py
+│   │   ├── classroom_scraper.py     # GitHub Classroom scraper
+│   │   └── github_scraper.py        # General GitHub scraper
+│   └── utils/
+│       ├── __init__.py
+│       ├── file_utils.py           # File utility functions
+│       └── logging_config.py       # Logging configuration
+├── static/                          # Static web assets
+│   ├── css/
+│   │   ├── demo.css               # Demo page styles
+│   │   └── style.css              # Main application styles
+│   └── js/
+│       └── demo.js                # Demo page JavaScript
+├── templates/                      # HTML templates
+│   ├── classroom.html             # Classroom analysis page
+│   ├── demo.html                  # Demo page
+│   ├── error.html                 # Error page
+│   └── index.html                 # Main page
+└── tests/                         # Test files
+    ├── advanced_repo_analyzer.py
+    ├── test_algorithm_consistency.py
+    ├── test_algorithm_improved.py
+    ├── test_repo_checker.py
+    └── reports/                   # Test reports
 ```
 
-## Keuntungan Struktur Baru
+## Key Components
 
-### 🎯 **Organisasi yang Jelas**
-- **Per Kelas**: Semua tugas dari satu kelas dalam satu folder
-- **Per Tugas**: Setiap assignment terpisah dengan jelas
-- **Per Mahasiswa**: Repository setiap mahasiswa terorganisir rapi
+### �️ **Core Architecture**
+- **Flask Application Factory Pattern**: Modular application structure
+- **Similarity Algorithms**: File-by-file comparison with Winnowing + Jaccard
+- **Demo System**: Pre-loaded repositories for testing (Java, JavaScript, Python)
+- **Web Interface**: Interactive demo and classroom analysis pages
 
-### 🔍 **Mudah Dinavigasi**
-- Dosen bisa langsung ke folder kelas yang diinginkan
-- Cari tugas spesifik dengan mudah
-- Bandingkan pekerjaan mahasiswa dalam satu tugas
+### � **Algorithm Components**
+- **FileComparisonEngine**: Main comparison engine with configurable thresholds
+- **WinnowingAlgorithm**: Code fingerprinting for similarity detection
+- **JaccardSimilarity**: Set-based similarity calculation
+- **File-by-file Analysis**: Individual file comparison with importance weighting
 
-### 📊 **Analisis Lebih Mudah**
-- Similarity check per assignment lebih fokus
-- Perbandingan antar mahasiswa dalam satu kelas
-- Tracking progress per kelas dan per tugas
+### 🎯 **Demo Data Structure**
+- **Java**: `data/demo_repos/` - Original Java assignment repositories
+- **JavaScript**: `data/demo_repos_js_filtered/` - Filtered JavaScript projects
+- **Python**: `data/demo_repos_python/` and `data/demo_repos_python_filtered/`
+- **Metadata**: `demo_repositories.json` with repository information
 
-### 💾 **Pengelolaan Storage**
-- Hindari duplikasi file
-- Backup dan restore per kelas
-- Archive tugas lama secara terorganisir
+### � **Configuration**
+- **Environment Variables**: GitHub tokens, API keys in `config/.env`
+- **Similarity Thresholds**: Configurable in FileComparisonEngine (default: 0.1)
+- **File Type Support**: .java, .js, .py, .html, .css, .json, .md
 
 ## Contoh Penggunaan
 

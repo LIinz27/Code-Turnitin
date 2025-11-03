@@ -1,24 +1,33 @@
-# Side-by-Side Code Comparison Feature - IMPLEMENTED ✅
+# File-by-File Similarity Analysis Feature - IMPLEMENTED ✅
 
 ## 📋 Overview
 
-Fitur **Side-by-Side Code Comparison** telah berhasil diimplementasikan! Fitur ini menampilkan perbandingan kode secara berdampingan dengan highlighting yang akurat berdasarkan hasil algoritma **Winnowing/Jaccard** yang sebenarnya, bukan hanya berdasarkan weight.
+Fitur **File-by-File Similarity Analysis** telah berhasil diimplementasikan dengan sempurna! Sistem sekarang menganalisis setiap file secara individual menggunakan algoritma **Winnowing + Jaccard** untuk mendapatkan akurasi tinggi dalam deteksi plagiarisme.
 
-## 🎯 Fitur yang Telah Diimplementasikan
+## 🎯 Key Features Implemented
 
-### 1. Tambah Tab Button
-```html
-<button @click="activeDetailTab = 'comparison'" 
-        :class="activeDetailTab === 'comparison' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500'"
-        class="py-2 px-1 border-b-2 font-medium text-sm">
-    <i class="fas fa-columns mr-1"></i>Side by Side
-</button>
+### 1. FileComparisonEngine (Core Engine)
+```python
+# src/algorithms/file_comparison.py
+class FileComparisonEngine:
+    def __init__(self, k=6, w=10, similarity_threshold=0.1):
+        self.winnowing = WinnowingAlgorithm(k=k, w=w)
+        self.jaccard = JaccardSimilarity()
+        self.similarity_threshold = similarity_threshold
 ```
 
-### 2. Tambah JavaScript Properties
+### 2. Individual File Analysis
+- **Per-file Comparison**: Setiap file dibandingkan secara terpisah
+- **Importance Weighting**: File berbeda memiliki bobot berbeda
+- **Threshold Filtering**: Hanya file dengan similarity ≥ 0.1 yang ditampilkan
+- **File Type Classification**: Automatic classification berdasarkan ekstensi
+
+### 3. Web Interface Integration
 ```javascript
-selectedFileForComparison: '',
-showFullCode: true,
+// static/js/demo.js - Top Similar File Pairs Display
+detailData?.file_analysis?.file_similarities?.forEach(file => {
+    // Display each file pair with similarity percentage
+});
 ```
 
 ## Bug Fixes untuk JavaScript Language
