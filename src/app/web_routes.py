@@ -261,8 +261,9 @@ def demo_api_candidates():
     """API endpoint to get comparison candidates for a repository"""
     repo_id = request.args.get('repo_id')
     limit = request.args.get('limit', 50, type=int)  # Increase default limit to 50
+    cross_language = request.args.get('cross_language', 'false').lower() == 'true'  # New parameter
     
-    print(f"DEBUG: Candidates request - repo_id: {repo_id} (type: {type(repo_id)})")
+    print(f"DEBUG: Candidates request - repo_id: {repo_id}, cross_language: {cross_language}")
     
     if not repo_id:
         return jsonify({'error': 'Repository ID is required'}), 400
@@ -286,15 +287,16 @@ def demo_api_candidates():
     
     print(f"DEBUG: Found source repo: {source_repo.get('name')} ({source_repo.get('language')})")
     
-    # Get comparison candidates
-    candidates = handler.get_comparison_candidates(source_repo, limit)
+    # Get comparison candidates with cross-language support
+    candidates = handler.get_comparison_candidates(source_repo, limit, enable_cross_language=cross_language)
     
-    print(f"DEBUG: Generated {len(candidates)} candidates")
+    print(f"DEBUG: Generated {len(candidates)} candidates (cross-language: {cross_language})")
     
     return jsonify({
         'source_repository': handler.get_repository_summary(source_repo),
         'candidates': candidates,
-        'total_candidates': len(candidates)
+        'total_candidates': len(candidates),
+        'cross_language_enabled': cross_language
     })
 
 

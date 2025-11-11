@@ -17,6 +17,7 @@ function demoApp() {
         statistics: null,
         isAnalyzing: false,
         isLoadingCandidates: false,
+        enableCrossLanguage: false,  // New property for cross-language toggle
 
         // Detail modal properties
         showDetailModal: false,
@@ -93,7 +94,13 @@ function demoApp() {
 
             this.isLoadingCandidates = true;
             try {
-                const response = await fetch(`/demo/api/candidates?repo_id=${this.selectedRepo.id}&limit=50`);
+                const params = new URLSearchParams({
+                    repo_id: this.selectedRepo.id,
+                    limit: 50,
+                    cross_language: this.enableCrossLanguage.toString()
+                });
+                
+                const response = await fetch(`/demo/api/candidates?${params}`);
                 const data = await response.json();
                 
                 this.candidates = data.candidates || [];
@@ -103,11 +110,38 @@ function demoApp() {
                     this.selectedCandidates = this.candidates.slice(0, Math.min(5, this.candidates.length))
                                                              .map(c => c.id);
                 }
+                
+                // Show notification about cross-language mode
+                if (this.enableCrossLanguage && data.candidates) {
+                    const crossLangCount = data.candidates.filter(c => c.is_cross_language).length;
+                    if (crossLangCount > 0) {
+                        this.showNotification(`Found ${crossLangCount} cross-language repositories`, 'info');
+                    }
+                }
             } catch (error) {
                 console.error('Error loading candidates:', error);
                 this.showNotification('Error loading comparison candidates', 'error');
             } finally {
                 this.isLoadingCandidates = false;
+            }
+        },
+
+        // Handle cross-language toggle change
+        handleCrossLanguageToggle() {
+            // Clear current selections when toggling
+            this.selectedCandidates = [];
+            this.candidates = [];
+            
+            // Reload candidates with new setting
+            if (this.selectedRepo) {
+                this.loadCandidates();
+            }
+            
+            // Show appropriate message
+            if (this.enableCrossLanguage) {
+                this.showNotification('Cross-language comparison enabled', 'success');
+            } else {
+                this.showNotification('Cross-language comparison disabled', 'info');
             }
         },
 

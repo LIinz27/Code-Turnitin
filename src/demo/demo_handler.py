@@ -139,8 +139,18 @@ class DemoHandler:
             return f"{size_kb / 1024:.1f} MB"
     
     def get_comparison_candidates(self, source_repo: Dict[str, Any], 
-                                 limit: int = 10) -> List[Dict[str, Any]]:
-        """Get suitable repositories for comparison with the source repository."""
+                                 limit: int = 10, enable_cross_language: bool = False) -> List[Dict[str, Any]]:
+        """
+        Get suitable repositories for comparison with the source repository.
+        
+        Args:
+            source_repo: The source repository to compare against
+            limit: Maximum number of candidates to return
+            enable_cross_language: If True, include repositories from different languages
+        
+        Returns:
+            List of candidate repositories for comparison
+        """
         source_language = source_repo.get('language')
         source_id = source_repo.get('id')
         
@@ -148,19 +158,47 @@ class DemoHandler:
             return []
         
         candidates = []
-        same_language_repos = self.get_repositories_by_language(source_language)
         
-        # Exclude the source repository itself
-        filtered_repos = [repo for repo in same_language_repos if repo.get('id') != source_id]
-        
-        # Sort by analysis priority and size for better comparison candidates
-        sorted_repos = sorted(filtered_repos, key=lambda x: (
-            x.get('analysis_priority') == 'high',  # High priority first
-            x.get('size', 0)  # Then by size
-        ), reverse=True)
+        if enable_cross_language:
+            # Get repositories from ALL languages when cross-language is enabled
+            all_repos = []
+            for language in self.get_available_languages():
+                language_repos = self.get_repositories_by_language(language)
+                all_repos.extend(language_repos)
+            
+            # Exclude the source repository itself
+            filtered_repos = [repo for repo in all_repos if repo.get('id') != source_id]
+            
+            # Sort by language match first (same language higher priority), then by analysis priority and size
+            sorted_repos = sorted(filtered_repos, key=lambda x: (
+                x.get('language') == source_language,  # Same language gets priority
+                x.get('analysis_priority') == 'high',  # High priority second
+                x.get('size', 0)  # Then by size
+            ), reverse=True)
+            
+            logger.info(f"Cross-language mode: Found {len(filtered_repos)} candidates from all languages")
+        else:
+            # Original same-language only behavior
+            same_language_repos = self.get_repositories_by_language(source_language)
+            
+            # Exclude the source repository itself
+            filtered_repos = [repo for repo in same_language_repos if repo.get('id') != source_id]
+            
+            # Sort by analysis priority and size for better comparison candidates
+            sorted_repos = sorted(filtered_repos, key=lambda x: (
+                x.get('analysis_priority') == 'high',  # High priority first
+                x.get('size', 0)  # Then by size
+            ), reverse=True)
+            
+            logger.info(f"Same-language mode: Found {len(filtered_repos)} {source_language} candidates")
         
         for repo in sorted_repos[:limit]:
-            candidates.append(self.get_repository_summary(repo))
+            candidate = self.get_repository_summary(repo)
+            # Add language info for UI display in cross-language mode
+            if enable_cross_language:
+                candidate['is_cross_language'] = repo.get('language') != source_language
+                candidate['language_badge'] = repo.get('language')
+            candidates.append(candidate)
         
         return candidates
     
