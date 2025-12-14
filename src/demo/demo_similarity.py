@@ -796,9 +796,6 @@ module.exports = {{ processData, validateInput }};
             'comparisons': [],
             'summary': {
                 'total_comparisons': len(target_repos),
-                'high_similarity_count': 0,
-                'medium_similarity_count': 0,
-                'low_similarity_count': 0,
                 'average_similarity': 0.0,
                 'max_similarity': 0.0,
                 'min_similarity': 1.0
@@ -820,17 +817,6 @@ module.exports = {{ processData, validateInput }};
                 similarity_score = self.algorithms[algorithm].calculate_similarity(source_code, target_code)
             similarities.append(similarity_score)
             
-            # Categorize similarity level
-            if similarity_score >= 0.7:
-                level = 'high'
-                results['summary']['high_similarity_count'] += 1
-            elif similarity_score >= 0.4:
-                level = 'medium'
-                results['summary']['medium_similarity_count'] += 1
-            else:
-                level = 'low'
-                results['summary']['low_similarity_count'] += 1
-            
             comparison = {
                 'target_repository': {
                     'id': target_repo.get('id'),
@@ -840,7 +826,6 @@ module.exports = {{ processData, validateInput }};
                 },
                 'similarity_score': round(similarity_score, 4),
                 'similarity_percentage': round(similarity_score * 100, 2),
-                'similarity_level': level,
                 'analysis_details': {
                     'source_repository_size': source_repo.get('size', 0),
                     'target_repository_size': target_repo.get('size', 0),
@@ -913,7 +898,6 @@ module.exports = {{ processData, validateInput }};
                     'similarity': {
                         'score': round(similarity_score, 4),
                         'percentage': round(similarity_score * 100, 2),
-                        'level': 'high' if similarity_score >= 0.7 else ('medium' if similarity_score >= 0.4 else 'low'),
                         'algorithm': algorithm,
                         'algorithm_name': f"{algorithm.title()} (File-by-File)",
                         'weighted_similarity': file_analysis_result.get('weighted_similarity', similarity_score)
@@ -967,7 +951,6 @@ module.exports = {{ processData, validateInput }};
                     'similarity': {
                         'score': round(similarity_score, 4),
                         'percentage': round(similarity_score * 100, 2),
-                        'level': 'high' if similarity_score >= 0.7 else ('medium' if similarity_score >= 0.4 else 'low'),
                         'algorithm': algorithm,
                         'algorithm_name': f"{algorithm.title()} (Legacy Concatenated)"
                     },
