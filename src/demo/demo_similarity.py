@@ -1182,14 +1182,44 @@ module.exports = {{ processData, validateInput }};
             logger.error(f"Error in file-by-file line similarity analysis: {e}")
             return self._create_fallback_file_by_file_similarity(source_repo, target_repo)
     
+    def _calculate_line_influence_score(self, line_content: str, all_lines: List[str], 
+                                       similarity: float) -> float:
+        """Calculate influence score for a line based on complexity and uniqueness."""
+        # Base influence from similarity
+        influence = similarity
+        
+        # Bonus for code complexity (longer lines = more complex)
+        stripped = line_content.strip()
+        if stripped:
+            # Length bonus: 0-1 scale (min 10 chars, max 100 chars)
+            length_bonus = min(max(len(stripped) - 10, 0) / 90, 1.0) * 0.2
+            influence += length_bonus
+        
+        # Bonus for uniqueness (how many identical lines in file)
+        identical_count = sum(1 for l in all_lines if l.strip() == stripped)
+        if identical_count > 0:
+            uniqueness_bonus = (1 - min(identical_count - 1, 10) / 10) * 0.15
+            influence += uniqueness_bonus
+        
+        # Bonus for meaningful code (not just braces/comments)
+        if stripped and not stripped.startswith('//') and not stripped.startswith('#') and stripped not in ['{', '}', '(', ')', ';', ',']:
+            influence += 0.1
+        
+        # Cap at 1.0
+        return min(influence, 1.0)
+
     def _format_code_with_similarity(self, code: str, line_similarities: Dict[int, float]) -> Dict[str, Any]:
-        """Format code with similarity information for each line."""
+        """Format code with similarity and influence information for each line."""
         lines = code.split('\n')
         formatted_lines = []
+        all_lines_for_analysis = [l.strip() for l in lines[:200]]
         
         for i, line_content in enumerate(lines[:200]):  # Limit to 200 lines for performance
             line_num = i + 1
             similarity = line_similarities.get(line_num, 0.0)
+            
+            # Calculate influence score
+            influence = self._calculate_line_influence_score(line_content, all_lines_for_analysis, similarity)
             
             # Determine highlight level based on similarity
             if similarity >= 0.8:
@@ -1205,6 +1235,7 @@ module.exports = {{ processData, validateInput }};
                 'number': line_num,
                 'content': line_content,
                 'similarity': round(similarity, 3),
+                'influence': round(influence, 3),
                 'highlight_level': highlight_level,
                 'has_similarity': similarity > 0
             })

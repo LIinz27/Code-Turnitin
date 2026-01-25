@@ -830,22 +830,32 @@
                                                     <span x-text="detailData?.source_repository?.name || 'Source Repository'"></span>
                                                     <span x-show="selectedSourceFile" class="ml-2 text-sm text-blue-600 font-mono" x-text="'(' + selectedSourceFile + ')'"></span>
                                                 </h5>
-                                                <div class="text-xs text-gray-500">
-                                                    <span x-text="currentFilePairData?.source_code?.displayed_lines || 0"></span>
-                                                    <span x-show="currentFilePairData?.source_code?.truncated"> / </span>
-                                                    <span x-show="currentFilePairData?.source_code?.truncated" x-text="currentFilePairData?.source_code?.total_lines || 0"></span>
-                                                    lines
-                                                    <span x-show="currentFilePairData?.source_code?.truncated" class="text-orange-600">(truncated)</span>
+                                                <div class="text-xs text-gray-500 flex items-center gap-2">
+                                                    <div class="flex items-center gap-1">
+                                                        <span x-text="currentFilePairData?.source_code?.displayed_lines || 0"></span>
+                                                        <span x-show="currentFilePairData?.source_code?.truncated"> / </span>
+                                                        <span x-show="currentFilePairData?.source_code?.truncated" x-text="currentFilePairData?.source_code?.total_lines || 0"></span>
+                                                        lines
+                                                        <span x-show="currentFilePairData?.source_code?.truncated" class="text-orange-600">(truncated)</span>
+                                                    </div>
+                                                    <div title="Influence Score: How impactful each line is for plagiarism detection" class="text-gray-400 hover:text-gray-600 cursor-help">
+                                                        <i class="fas fa-info-circle text-xs"></i>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div class="code-panel overflow-auto h-80 text-sm font-mono">
                                                 <template x-for="line in currentFilePairData?.source_code?.lines || []" :key="'src-' + line.number">
-                                                    <div class="flex hover:bg-gray-50" 
-                                                         :class="getLineHighlightClass(line.highlight_level)">
+                                                    <div class="flex hover:bg-gray-50 group" 
+                                                         :class="getLineHighlightClass(line.highlight_level)"
+                                                         :title="'Similarity: ' + (line.similarity * 100).toFixed(1) + '% | Influence: ' + (line.influence * 100).toFixed(1) + '%'">
                                                         <div class="line-number w-12 flex-shrink-0 px-2 py-1 text-xs text-gray-500 text-right bg-gray-100 border-r border-gray-200 select-none"
                                                              x-text="line.number"></div>
                                                         <div class="flex-1 px-3 py-1 whitespace-pre-wrap break-all" 
                                                              x-text="line.content || ''"></div>
+                                                        <div class="flex-shrink-0 px-2 py-1 text-xs text-gray-500 bg-gray-50 border-l border-gray-200 group-hover:bg-gray-100 transition-colors whitespace-nowrap"
+                                                             :class="line.influence >= 0.7 ? 'text-red-600 font-medium' : line.influence >= 0.4 ? 'text-orange-600' : 'text-green-600'">
+                                                            <span x-text="'↑' + Math.round(line.influence * 100)"></span>
+                                                        </div>
                                                     </div>
                                                 </template>
                                                 <div x-show="!currentFilePairData?.source_code?.lines?.length" 
@@ -866,22 +876,32 @@
                                                     <span x-text="detailData?.target_repository?.name || 'Target Repository'"></span>
                                                     <span x-show="selectedTargetFile" class="ml-2 text-sm text-blue-600 font-mono" x-text="'(' + selectedTargetFile + ')'"></span>
                                                 </h5>
-                                                <div class="text-xs text-gray-500">
-                                                    <span x-text="currentFilePairData?.target_code?.displayed_lines || 0"></span>
-                                                    <span x-show="currentFilePairData?.target_code?.truncated"> / </span>
-                                                    <span x-show="currentFilePairData?.target_code?.truncated" x-text="currentFilePairData?.target_code?.total_lines || 0"></span>
-                                                    lines
-                                                    <span x-show="currentFilePairData?.target_code?.truncated" class="text-orange-600">(truncated)</span>
+                                                <div class="text-xs text-gray-500 flex items-center gap-2">
+                                                    <div class="flex items-center gap-1">
+                                                        <span x-text="currentFilePairData?.target_code?.displayed_lines || 0"></span>
+                                                        <span x-show="currentFilePairData?.target_code?.truncated"> / </span>
+                                                        <span x-show="currentFilePairData?.target_code?.truncated" x-text="currentFilePairData?.target_code?.total_lines || 0"></span>
+                                                        lines
+                                                        <span x-show="currentFilePairData?.target_code?.truncated" class="text-orange-600">(truncated)</span>
+                                                    </div>
+                                                    <div title="Influence Score: How impactful each line is for plagiarism detection" class="text-gray-400 hover:text-gray-600 cursor-help">
+                                                        <i class="fas fa-info-circle text-xs"></i>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div class="code-panel overflow-auto h-80 text-sm font-mono">
                                                 <template x-for="line in currentFilePairData?.target_code?.lines || []" :key="'tgt-' + line.number">
-                                                    <div class="flex hover:bg-gray-50" 
-                                                         :class="getLineHighlightClass(line.highlight_level)">
+                                                    <div class="flex hover:bg-gray-50 group" 
+                                                         :class="getLineHighlightClass(line.highlight_level)"
+                                                         :title="'Similarity: ' + (line.similarity * 100).toFixed(1) + '% | Influence: ' + (line.influence * 100).toFixed(1) + '%'">
                                                         <div class="line-number w-12 flex-shrink-0 px-2 py-1 text-xs text-gray-500 text-right bg-gray-100 border-r border-gray-200 select-none"
                                                              x-text="line.number"></div>
                                                         <div class="flex-1 px-3 py-1 whitespace-pre-wrap break-all" 
                                                              x-text="line.content || ''"></div>
+                                                        <div class="flex-shrink-0 px-2 py-1 text-xs text-gray-500 bg-gray-50 border-l border-gray-200 group-hover:bg-gray-100 transition-colors whitespace-nowrap"
+                                                             :class="line.influence >= 0.7 ? 'text-red-600 font-medium' : line.influence >= 0.4 ? 'text-orange-600' : 'text-green-600'">
+                                                            <span x-text="'↑' + Math.round(line.influence * 100)"></span>
+                                                        </div>
                                                     </div>
                                                 </template>
                                                 <div x-show="!currentFilePairData?.target_code?.lines?.length" 

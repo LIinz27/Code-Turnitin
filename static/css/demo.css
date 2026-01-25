@@ -144,6 +144,36 @@ button:active:not(:disabled) {
 
 /* Similarity indicator dots - color coding removed */
 
+/* Influence Score styling */
+.influence-score {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 600;
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+.influence-score.high {
+    color: #dc2626;
+    background-color: #fee2e2;
+    border: 1px solid #fecaca;
+}
+
+.influence-score.medium {
+    color: #ea580c;
+    background-color: #fed7aa;
+    border: 1px solid #fdba74;
+}
+
+.influence-score.low {
+    color: #16a34a;
+    background-color: #dbeafe;
+    border: 1px solid #bfdbfe;
+}
+
 /* Code comparison container styling */
 .code-comparison-container {
     display: grid;
