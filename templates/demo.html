@@ -846,12 +846,6 @@
                                                              x-text="line.number"></div>
                                                         <div class="flex-1 px-3 py-1 whitespace-pre-wrap break-all" 
                                                              x-text="line.content || ''"></div>
-                                                        <div x-show="line.has_similarity" 
-                                                             class="w-8 flex-shrink-0 flex items-center justify-center"
-                                                             :title="'Similarity: ' + formatSimilarityPercentage(line.similarity)">
-                                                            <div class="w-2 h-2 rounded-full" 
-                                                                 :class="line.highlight_level === 'high' ? 'bg-red-500' : (line.highlight_level === 'medium' ? 'bg-yellow-500' : 'bg-blue-500')"></div>
-                                                        </div>
                                                     </div>
                                                 </template>
                                                 <div x-show="!currentFilePairData?.source_code?.lines?.length" 
@@ -888,12 +882,6 @@
                                                              x-text="line.number"></div>
                                                         <div class="flex-1 px-3 py-1 whitespace-pre-wrap break-all" 
                                                              x-text="line.content || ''"></div>
-                                                        <div x-show="line.has_similarity" 
-                                                             class="w-8 flex-shrink-0 flex items-center justify-center"
-                                                             :title="'Similarity: ' + formatSimilarityPercentage(line.similarity)">
-                                                            <div class="w-2 h-2 rounded-full" 
-                                                                 :class="line.highlight_level === 'high' ? 'bg-red-500' : (line.highlight_level === 'medium' ? 'bg-yellow-500' : 'bg-blue-500')"></div>
-                                                        </div>
                                                     </div>
                                                 </template>
                                                 <div x-show="!currentFilePairData?.target_code?.lines?.length" 

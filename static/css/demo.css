@@ -87,16 +87,7 @@ button:active:not(:disabled) {
 .language-html { background-color: #e34f26; }
 .language-css { background-color: #1572b6; }
 
-/* Similarity level indicators */
-.similarity-high {
-    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-    border-left: 4px solid #ef4444;
-}
-
-.similarity-medium {
-    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-    border-left: 4px solid #f59e0b;
-}
+/* Similarity level indicators - color coding removed */
 
 /* Code comparison panel styling */
 .code-panel {
@@ -115,13 +106,13 @@ button:active:not(:disabled) {
 
 /* Code line highlighting based on similarity */
 .code-line-high {
-    background-color: rgba(239, 68, 68, 0.1) !important;
-    border-left: 3px solid #ef4444 !important;
+    background-color: rgba(59, 130, 246, 0.1) !important;
+    border-left: 3px solid #3b82f6 !important;
 }
 
 .code-line-medium {
-    background-color: rgba(245, 158, 11, 0.1) !important;
-    border-left: 3px solid #f59e0b !important;
+    background-color: rgba(59, 130, 246, 0.1) !important;
+    border-left: 3px solid #3b82f6 !important;
 }
 
 .code-line-low {
@@ -140,47 +131,18 @@ button:active:not(:disabled) {
 }
 
 .code-panel .code-line-high:hover {
-    background-color: rgba(239, 68, 68, 0.15) !important;
+    background-color: rgba(59, 130, 246, 0.15) !important;
 }
 
 .code-panel .code-line-medium:hover {
-    background-color: rgba(245, 158, 11, 0.15) !important;
+    background-color: rgba(59, 130, 246, 0.15) !important;
 }
 
 .code-panel .code-line-low:hover {
     background-color: rgba(59, 130, 246, 0.15) !important;
 }
 
-/* Similarity indicator dots */
-.similarity-dot-high {
-    background-color: #ef4444;
-    animation: pulseRed 2s infinite;
-}
-
-.similarity-dot-medium {
-    background-color: #f59e0b;
-    animation: pulseYellow 2s infinite;
-}
-
-.similarity-dot-low {
-    background-color: #3b82f6;
-    animation: pulseBlue 2s infinite;
-}
-
-@keyframes pulseRed {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.7; transform: scale(1.1); }
-}
-
-@keyframes pulseYellow {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.7; transform: scale(1.1); }
-}
-
-@keyframes pulseBlue {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.7; transform: scale(1.1); }
-}
+/* Similarity indicator dots - color coding removed */
 
 /* Code comparison container styling */
 .code-comparison-container {

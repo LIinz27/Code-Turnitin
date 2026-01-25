@@ -1218,7 +1218,7 @@ module.exports = {{ processData, validateInput }};
     
     def _get_file_pair_details(self, source_path: str, target_path: str, 
                               source_file: str, target_file: str) -> Dict[str, Any]:
-        """Get detailed comparison for a specific file pair."""
+        """Get detailed comparison for a specific file pair using Winnowing-based line similarity."""
         try:
             import tempfile
             from algorithms.similarity_checker import preprocess_code, generate_k_grams, hash_k_gram_optimized, winnowing
@@ -1292,7 +1292,7 @@ module.exports = {{ processData, validateInput }};
                 target_fingerprint_hashes = set(fp[0] for fp in target_fingerprints)
                 matching_hashes = source_fingerprint_hashes.intersection(target_fingerprint_hashes)
                 
-                # Calculate line similarities
+                # Calculate line similarities based on matching hashes
                 source_line_similarities = {}
                 target_line_similarities = {}
                 

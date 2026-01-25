@@ -502,3 +502,185 @@ if __name__ == "__main__":
     # os.remove("data/temp/code2.js")
     # os.remove("data/temp/code3.py")
     # os.rmdir("data/temp")
+
+
+# ================================
+# TOKEN-BASED JACCARD SIMILARITY
+# For line-by-line comparison (alternative to winnowing)
+# ================================
+
+def tokenize_line(line: str, keywords: set = None) -> set:
+    """
+    Tokenize a single line of code into meaningful tokens.
+    Returns a set of tokens for Jaccard similarity calculation.
+    
+    **IMPORTANT**: Keep track of actual identifiers to avoid false positives
+    from variable name changes!
+    
+    Args:
+        line: Source code line
+        keywords: Set of language keywords to normalize
+    
+    Returns:
+        Set of tokens representing the line
+    """
+    if not keywords:
+        keywords = {
+            'if', 'else', 'for', 'while', 'do', 'return', 'function', 'var', 'const', 'let', 'class',
+            'public', 'private', 'protected', 'static', 'void', 'int', 'float', 'double', 'char', 'bool',
+            'true', 'false', 'null', 'this', 'super', 'new', 'import', 'export', 'try', 'catch', 'finally',
+            'async', 'await', 'break', 'continue', 'switch', 'case', 'def', 'with', 'lambda',
+            'and', 'or', 'not', 'in', 'is', 'isinstance'
+        }
+    
+    # Remove comments
+    line = re.sub(r'//.*$', '', line)
+    line = re.sub(r'#.*$', '', line)
+    
+    # Replace string literals
+    line = re.sub(r'"[^"]*"', 'STR', line)
+    line = re.sub(r"'[^']*'", 'STR', line)
+    line = re.sub(r'`[^`]*`', 'STR', line)
+    
+    # Split into tokens: identifiers, keywords, operators, numbers
+    tokens = re.findall(r'[a-zA-Z_][a-zA-Z0-9_]*|[0-9]+|[+\-*/%=<>!&|^~().{}[\];:,]|STR', line)
+    
+    # Normalize: keywords stay as-is, identifiers KEEP ACTUAL NAME, numbers become NUM, operators as-is
+    normalized_tokens = []
+    for token in tokens:
+        if token in keywords:
+            normalized_tokens.append(f'KW:{token}')  # Keyword
+        elif token == 'STR':
+            normalized_tokens.append('LITERAL')
+        elif token.isdigit():
+            normalized_tokens.append('NUM')
+        elif re.match(r'[a-zA-Z_]', token):
+            # KEEP ACTUAL IDENTIFIER NAME - don't normalize to VAR!
+            # This prevents false matches from variable renaming
+            normalized_tokens.append(f'ID:{token}')
+        else:
+            normalized_tokens.append(f'OP:{token}')  # Operator/Punctuation
+    
+    return set(normalized_tokens)
+
+
+def calculate_jaccard_similarity(tokens_a: set, tokens_b: set) -> float:
+    """
+    Calculate Jaccard similarity between two token sets.
+    
+    Jaccard = |intersection| / |union|
+    
+    Args:
+        tokens_a: Token set from line A (or fingerprints set)
+        tokens_b: Token set from line B (or fingerprints set)
+    
+    Returns:
+        Similarity score between 0.0 and 1.0, or tuple (score, intersection_count, union_count)
+        if fingerprints are passed.
+    """
+    if not tokens_a and not tokens_b:
+        # Check if these are fingerprints (list of tuples) or token sets
+        if isinstance(tokens_a, list) or isinstance(tokens_b, list):
+            return 1.0, 0, 0
+        return 1.0  # Both empty = identical
+    
+    if not tokens_a or not tokens_b:
+        if isinstance(tokens_a, list) or isinstance(tokens_b, list):
+            return 0.0, 0, 0
+        return 0.0  # One empty, one not = completely different
+    
+    # Handle fingerprints (list of tuples with hash values)
+    if isinstance(tokens_a, list) and isinstance(tokens_b, list):
+        if tokens_a and isinstance(tokens_a[0], tuple):
+            # These are fingerprints - extract hash values
+            hashes_a = set(fp[0] for fp in tokens_a)
+            hashes_b = set(fp[0] for fp in tokens_b)
+            intersection = len(hashes_a.intersection(hashes_b))
+            union = len(hashes_a.union(hashes_b))
+            similarity = intersection / union if union > 0 else 0.0
+            return similarity, intersection, union
+    
+    # Handle token sets
+    if isinstance(tokens_a, set) and isinstance(tokens_b, set):
+        intersection = len(tokens_a.intersection(tokens_b))
+        union = len(tokens_a.union(tokens_b))
+        
+        if union == 0:
+            return 0.0
+        
+        return intersection / union
+
+
+def calculate_line_similarity_jaccard(source_code: str, target_code: str) -> dict:
+    """
+    Calculate line-by-line similarity using Jaccard on tokens.
+    
+    Returns dict with line similarities for both source and target.
+    
+    Args:
+        source_code: Source code as string
+        target_code: Target code as string
+    
+    Returns:
+        {
+            'source_similarities': {line_num: similarity_score, ...},
+            'target_similarities': {line_num: similarity_score, ...},
+            'line_mappings': [(src_line, tgt_line, similarity), ...]
+        }
+    """
+    source_lines = source_code.split('\n')
+    target_lines = target_code.split('\n')
+    
+    # Tokenize all lines
+    source_tokens = []
+    target_tokens = []
+    
+    for line in source_lines:
+        if line.strip():
+            source_tokens.append(tokenize_line(line))
+        else:
+            source_tokens.append(set())
+    
+    for line in target_lines:
+        if line.strip():
+            target_tokens.append(tokenize_line(line))
+        else:
+            target_tokens.append(set())
+    
+    # Calculate pairwise similarities
+    source_similarities = {}
+    target_similarities = {}
+    line_mappings = []
+    
+    # For each source line, find best matching target line
+    for src_idx, src_tokens in enumerate(source_tokens):
+        src_line_num = src_idx + 1
+        best_similarity = 0.0
+        best_tgt_idx = -1
+        
+        for tgt_idx, tgt_tokens in enumerate(target_tokens):
+            similarity = calculate_jaccard_similarity(src_tokens, tgt_tokens)
+            
+            if similarity > best_similarity:
+                best_similarity = similarity
+                best_tgt_idx = tgt_idx
+        
+        source_similarities[src_line_num] = best_similarity
+        
+        if best_tgt_idx >= 0 and best_similarity >= 0.1:  # Threshold 10%
+            line_mappings.append((src_line_num, best_tgt_idx + 1, best_similarity))
+    
+    # For target lines, use same similarity if already mapped
+    mapped_targets = {tgt: sim for _, tgt, sim in line_mappings}
+    for tgt_idx in range(len(target_lines)):
+        tgt_line_num = tgt_idx + 1
+        if tgt_line_num in mapped_targets:
+            target_similarities[tgt_line_num] = mapped_targets[tgt_line_num]
+        else:
+            target_similarities[tgt_line_num] = 0.0
+    
+    return {
+        'source_similarities': source_similarities,
+        'target_similarities': target_similarities,
+        'line_mappings': line_mappings
+    }
